@@ -1,7 +1,7 @@
 ASSN = 1
 CLASS= cs143
 CLASSDIR= /afs/ir/class/cs143
-LIB= -ll
+LIB= -lfl
 
 SRC= cool.flex test.cl README 
 CSRC= lextest.cc utilities.cc stringtab.cc handle_flags.cc

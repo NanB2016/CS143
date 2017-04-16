@@ -1,0 +1,3 @@
+*.o
+cool-lex.cc
+lexer
