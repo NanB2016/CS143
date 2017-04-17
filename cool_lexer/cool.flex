@@ -179,13 +179,13 @@ WHITESPACE	[ \f\r\t\v]
 <STRING>\n		{ cool_yylval.error_msg = "Unterminated string constant"; BEGIN(INITIAL); curr_lineno++; return ERROR; }
 <STRING>\0		{ cool_yyval.error_msg = "String contains null character"; return ERROR; }
 
-<STRING>\\n		{ if (max_str_check) return max_str_error; *string_buf_ptr = yytext[0]; string_buf_ptr++; }
-<STRING>\\t		{ if (max_str_check) return max_str_error; *string_buf_ptr = yytext[0]; string_buf_ptr++; }
-<STRING>\\b		{ if (max_str_check) return max_str_error; *string_buf_ptr = yytext[0]; string_buf_ptr++; }
-<STRING>\\f		{ if (max_str_check) return max_str_error; *string_buf_ptr = yytext[0]; string_buf_ptr++; }
+<STRING>\\n		{ if (max_str_check) return max_str_error; *string_buf_ptr = '\n'; string_buf_ptr++; }
+<STRING>\\t		{ if (max_str_check) return max_str_error; *string_buf_ptr = '\t'; string_buf_ptr++; }
+<STRING>\\b		{ if (max_str_check) return max_str_error; *string_buf_ptr = '\b'; string_buf_ptr++; }
+<STRING>\\f		{ if (max_str_check) return max_str_error; *string_buf_ptr = '\f'; string_buf_ptr++; }
 <STRING>\\.		{ if (max_str_check) return max_str_error; *string_buf_ptr = yytext[1]; string_buf_ptr++; }
 
-<STRING>.	{ if (max_str_check) return max_str_error; *string_buf_ptr = yytext[0]; string_buf_ptr++; )
+<STRING>.	{ if (max_str_check) return max_str_error; *string_buf_ptr = yytext[0]; string_buf_ptr++; }
 
 .		{ cool_yylval.error_msg = yytext; return ERROR; }
 
