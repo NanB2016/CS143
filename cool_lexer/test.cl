@@ -2,6 +2,11 @@
    arrays are faked as Strings,
    X's respresent live cells, dots represent dead cells,
    no error checking is done *)
+
+*)  
+-- This is dash comment 
+
+
 class CellularAutomaton inherits IO {
     population_map : String;
    
@@ -14,7 +19,12 @@ class CellularAutomaton inherits IO {
    
     print() : SELF_TYPE {
         {
-            out_string(population_map.concat("\n"));
+            out_string(population_map.concat("ab\ncd")
+            out_string(population_map.concat("This \
+                                             is OK")
+            out_string(population_map.concat("This is not
+                                             OK")
+            out_string(population_map.concat("\0")
             self;
         }
     };

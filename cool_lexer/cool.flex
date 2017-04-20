@@ -31,6 +31,9 @@ extern FILE *fin; /* we read from this file */
 	if ( (result = fread( (char*)buf, sizeof(char), max_size, fin)) < 0) \
 		YY_FATAL_ERROR( "read() in flex scanner failed");
 
+#define ADD_NEWCHAR(c) \
+  if (max_str_check()) return max_str_error(); *string_buf_ptr = (c); string_buf_ptr++;
+
 char string_buf[MAX_STR_CONST]; /* to assemble string constants */
 char *string_buf_ptr;
 
@@ -97,7 +100,7 @@ WHITESPACE	[ \f\r\t\v]
 <COMMENT>\n	{ curr_lineno++; }
 <COMMENT>"*)"	{ nested_level--; if (nested_level==0) {BEGIN(INITIAL);} }
 
-"--"		{ BEGIN(DASHCOMMENT); }	
+--.*		{ BEGIN(DASHCOMMENT); }	
 <DASHCOMMENT>\n	{ curr_lineno++; BEGIN(INITIAL); }
 <DASHCOMMENT><<EOF>> { curr_lineno++; BEGIN(INITIAL); }
 
@@ -173,19 +176,20 @@ WHITESPACE	[ \f\r\t\v]
 
 \"	{ string_buf_ptr = string_buf; BEGIN(STRING); }
 
-<STRING>\"		{ if (max_str_check()) return max_str_error(); *string_buf_ptr = '\0'; cool_yylval.symbol = stringtable.add_string(yytext); return STR_CONST; }
+<STRING>\"		{ if (max_str_check()) return max_str_error(); *string_buf_ptr = '\0'; cool_yylval.symbol = stringtable.add_string(string_buf); BEGIN(INITIAL); return STR_CONST; }
 
+<STRING>\\n		{ ADD_NEWCHAR('\n') }
+<STRING>\\t		{ ADD_NEWCHAR('\t') }
+<STRING>\\b		{ ADD_NEWCHAR('\b') }
+<STRING>\\f		{ ADD_NEWCHAR('\f') }
+<STRING>\\\n	{ curr_lineno++; ADD_NEWCHAR('\n') }
+<STRING>\\.		{ ADD_NEWCHAR(yytext[1]) }
+
+<STRING>\0    { cool_yylval.error_msg = "String contains null character"; return ERROR;}
 <STRING><<EOF>>		{ BEGIN(INITIAL); cool_yylval.error_msg = "EOF in string constant"; return ERROR; }
 <STRING>\n		{ cool_yylval.error_msg = "Unterminated string constant"; BEGIN(INITIAL); curr_lineno++; return ERROR; }
-<STRING>\0		{ cool_yylval.error_msg = "String contains null character"; return ERROR; }
 
-<STRING>\\n		{ if (max_str_check()) return max_str_error(); *string_buf_ptr = '\n'; string_buf_ptr++; }
-<STRING>\\t		{ if (max_str_check()) return max_str_error(); *string_buf_ptr = '\t'; string_buf_ptr++; }
-<STRING>\\b		{ if (max_str_check()) return max_str_error(); *string_buf_ptr = '\b'; string_buf_ptr++; }
-<STRING>\\f		{ if (max_str_check()) return max_str_error(); *string_buf_ptr = '\f'; string_buf_ptr++; }
-<STRING>\\.		{ if (max_str_check()) return max_str_error(); *string_buf_ptr = yytext[1]; string_buf_ptr++; }
-
-<STRING>.	{ if (max_str_check()) return max_str_error(); *string_buf_ptr = yytext[0]; string_buf_ptr++; }
+<STRING>.	{ ADD_NEWCHAR(yytext[0]) }
 
 .		{ cool_yylval.error_msg = yytext; return ERROR; }
 
