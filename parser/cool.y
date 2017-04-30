@@ -245,7 +245,7 @@
     { $$ = neg($2); }
     | expr '<' expr
     { $$ = lt($1, $3); }
-    | expr '<=' expr
+    | expr LE expr
     { $$ = leq($1, $3); }
     | expr '=' expr
     { $$ = eq($1, $3); }
