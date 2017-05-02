@@ -169,31 +169,35 @@
     { $$ = single_Classes($1);
     parse_results = $$; }
     | class_list class	/* several classes */
-    { $$ = append_Classes($1,single_Classes($2)); 
-    parse_results = $$; }
+    { $$ = append_Classes($1,single_Classes($2)); parse_results = $$; }
     ;
     
     /* If no parent is specified, the class inherits from the Object class. */
     class	: CLASS TYPEID '{' feature_list '}' ';'
     { $$ = class_($2,idtable.add_string("Object"),$4,
     stringtable.add_string(curr_filename)); }
+    |  CLASS TYPEID '{' '}' ';'
+    { $$ = class_($2,idtable.add_string("Object"),nil_Features(),
+    stringtable.add_string(curr_filename)); }
     | CLASS TYPEID INHERITS TYPEID '{' feature_list '}' ';'
     { $$ = class_($2,$4,$6,stringtable.add_string(curr_filename)); }
+    | CLASS TYPEID INHERITS TYPEID '{' '}' ';'
+    { $$ = class_($2,$4,nil_Features(),stringtable.add_string(curr_filename)); }
     ;
     
     /* Feature list may be empty, but no empty features in list. */
-    feature_list:		/* empty */
-    {  $$ = nil_Features(); }
+    feature_list:
+    feature
+    {  $$ = single_Features($1); }
     | feature_list feature /* several features */
-    {  $$ = append_Features($1, single_Features($2));
-    }
+    {  $$ = append_Features($1, single_Features($2)); }
     ;
 
-    feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}'
+    feature : OBJECTID '(' formal_list ')' ':' TYPEID '{' expr '}' ';'
     { $$ = method($1, $3, $6, $8); }
-    | OBJECTID ':' TYPEID
+    | OBJECTID ':' TYPEID ';'
     { $$ = attr($1, $3, no_expr()); }
-    | OBJECTID ':' TYPEID ASSIGN expr
+    | OBJECTID ':' TYPEID ASSIGN expr ';'
     { $$ = attr($1, $3, $5);  }
     ;
 
@@ -209,7 +213,47 @@
     formal:
     OBJECTID ':' TYPEID
     { $$ = formal($1, $3); }
+    ;
 
+    expr_list:
+    { $$ = nil_Expressions(); }
+    | expr
+    { $$ = single_Expressions($1); }
+    | expr_list ',' expr
+    { $$ = append_Expressions($1, single_Expressions($3)); }
+    ;
+    
+    expr_block:
+    expr ';'
+    { $$ = single_Expressions($1); }
+    | expr_block expr ';'
+    { $$ = append_Expressions($1, single_Expressions($2)); }
+    ;
+    
+    expr_let:
+    OBJECTID ':' TYPEID IN expr
+    { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expr IN expr
+    { $$ = let($1, $3, $5, $7); }
+    | OBJECTID ':' TYPEID ',' expr_let
+    { $$ = let($1, $3, no_expr(), $5); }
+    | OBJECTID ':' TYPEID ASSIGN expr ',' expr_let
+    { $$ = let($1, $3, $5, $7); }
+    ;
+    
+    case_list:
+    case
+    { $$ = single_Cases($1); }
+    | case_list case
+    { $$ = append_Cases($1, single_Cases($2)); }
+    ;
+
+    case:
+    OBJECTID ':' TYPEID DARROW expr ';'
+    { $$ = branch($1, $3, $5); }
+    ;
+    
+ 
     expr:
     OBJECTID ASSIGN expr
     { $$ = assign($1, $3); }
@@ -262,46 +306,7 @@
     | BOOL_CONST
     { $$ = bool_const($1); }
     ;
-
-    expr_list:
-    { $$ = nil_Expressions(); }
-    | expr
-    { $$ = single_Expressions($1); }
-    | expr_list ',' expr
-    { $$ = append_Expressions($1, single_Expressions($3)); }
-    ;
-    
-    expr_block:
-    expr ';'
-    { $$ = single_Expressions($1); }
-    | expr_block expr ';'
-    { $$ = append_Expressions($1, single_Expressions($2)); }
-    ;
-    
-    expr_let:
-    OBJECTID ':' TYPEID IN expr
-    { $$ = let($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expr IN expr
-    { $$ = let($1, $3, $5, $7); }
-    | OBJECTID ':' TYPEID ',' expr_let
-    { $$ = let($1, $3, no_expr(), $5); }
-    | OBJECTID ':' TYPEID ASSIGN expr ',' expr_let
-    { $$ = let($1, $3, $5, $7); }
-    ;
-    
-    case_list:
-    case
-    { $$ = single_Cases($1); }
-    | case_list case
-    { $$ = append_Cases($1, single_Cases($2)); }
-    ;
-
-    case:
-    OBJECTID ':' TYPEID DARROW expr ';'
-    { $$ = branch($1, $3, $5); }
-    ;
-    
-    
+   
     /* end of grammar */
     %%
     
