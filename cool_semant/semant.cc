@@ -88,6 +88,12 @@ static void initialize_constants(void)
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
   install_basic_classes();
   install_program_classes(classes);
+  has_cycle();
+
+  if (cycle_found){
+    cerr<<"cycle exists in inheritance graph!" << endl;
+  }
+
 }
 
 void ClassTable::install_basic_classes() {
@@ -251,6 +257,44 @@ void ClassTable::install_program_classes(Classes classes) {
 
     IG(parent, c->get_name());
   }
+}
+
+void ClassTable::has_cycle(){
+  cycle_found = false;
+
+  std::map<Symbol, std::set<Symbol> >:: iterator iter1;
+  std::set<Symbol> visited;
+
+  for (iter1 = inheritance_graph.begin(); iter1 != inheritance_graph.end(); ++iter1){
+     DFS(visited, iter1->first);
+     if (cycle_found){
+       break;
+     }
+  }
+
+}
+
+void ClassTable::DFS(std::set<Symbol> visited, Symbol c){
+  std::set<Symbol>::iterator iter2;
+  
+  if (visited.find(c)!=visited.end()){
+
+    cycle_found = true;
+    return;
+  }
+  else{
+
+    visited.insert(c);
+    
+  }
+
+  for (iter2 = inheritance_graph[c].begin(); iter2!= inheritance_graph
+    [c].end(); ++iter2){
+
+    DFS(visited, *iter2);
+  }
+
+  return;
 }
 
 void ClassTable::abort(){
