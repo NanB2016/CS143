@@ -9,6 +9,8 @@
 #define IG(a, b) inheritance_graph[a].insert(b)
 #define CI(a, b) class_info.insert(std::make_pair(a, b))
 
+typedef std::set<Symbol>::iterator SymSetIter;
+
 extern int semant_debug;
 extern char *curr_filename;
 
@@ -94,6 +96,7 @@ ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) 
     cerr<<"cycle exists in inheritance graph!" << endl;
   }
 
+  install_class_methods();
 }
 
 void ClassTable::install_basic_classes() {
@@ -243,7 +246,6 @@ void ClassTable::install_program_classes(Classes classes) {
     Symbol parent = c->get_parent();
 
     if (parent==Int || parent==Bool || parent==Str || parent==SELF_TYPE) {
-
       semant_error(c->get_filename(), c)
       << "parent cannot be basic classes or SELF_TYPE!" << endl;
       abort();
@@ -295,6 +297,42 @@ void ClassTable::DFS(std::set<Symbol> visited, Symbol c){
   }
 
   return;
+}
+
+void ClassTable::install_class_methods() {
+  bool has_main_method = false;
+
+  // Use BFS to iterate over all class top-down, and fill in the class-methods map
+  std::queue<Symbol> class_queue;
+  class_queue.push(Object);
+  while (!class_queue.empty()) {
+    Symbol c = class_queue.front();
+    class_queue.pop();
+    Features features = class_info[c]->get_features();
+
+    for(int i = features->first(); features->more(i); i = features->next(i)) {
+      Feature f = features->nth(i);
+
+      if (f->is_attribute()) {
+        continue;
+      } else { //method
+        method_class* method = (method_class*) f;
+        class_method_map[c][method->get_name()] = method;
+      }
+    }
+
+    // enqueue all child classes
+    std::set<Symbol> child_classes = inheritance_graph[c];
+    SymSetIter it = child_classes.begin();
+    while (it != child_classes.end()) {
+      class_queue.push(*it);
+      ++it;
+    }
+  }
+
+  if (!has_main_method) {
+    semant_error() << "No main method defined!" << endl;
+  }
 }
 
 void ClassTable::abort(){

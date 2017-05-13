@@ -10,6 +10,7 @@
 
 #include <map>
 #include <set>
+#include <queue>
 
 #define TRUE 1
 #define FALSE 0
@@ -31,11 +32,14 @@ private:
   std::map<Symbol, std::set<Symbol> > inheritance_graph; 
   std::map<Symbol, class__class*> class_info;
   std::set<Symbol> basic_class_set;
+  std::map<Symbol, std::map<Symbol, method_class*> > class_method_map;
+  std::map<Symbol, std::map<Symbol, attr_class*> > class_attr_map;
 
   void install_basic_classes();
   void install_program_classes(Classes classes);
   void has_cycle();
   void DFS(std::set<Symbol> visited, Symbol c);
+  void install_class_methods();
   void abort();
 
 public:

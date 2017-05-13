@@ -46,15 +46,18 @@ public:
 typedef class Feature_class *Feature;
 
 class Feature_class : public tree_node {
+protected:
+  bool is_attr;
 public:
    tree_node *copy()		 { return copy_Feature(); }
    virtual Feature copy_Feature() = 0;
+   bool is_attribute() { return is_attr; }
+   bool is_method() { return !is_attr; }
 
 #ifdef Feature_EXTRAS
    Feature_EXTRAS
 #endif
 };
-
 
 // define simple phylum - Formal
 typedef class Formal_class *Formal;
@@ -163,6 +166,7 @@ public:
    void dump(ostream& stream, int n);
    Symbol get_name() { return name; }
    Symbol get_parent() { return parent; }
+   Features get_features() { return features; }
 
 #ifdef Class__SHARED_EXTRAS
    Class__SHARED_EXTRAS
@@ -186,9 +190,11 @@ public:
       formals = a2;
       return_type = a3;
       expr = a4;
+      is_attr = false;
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
+   Symbol get_name() { return name; }
 
 #ifdef Feature_SHARED_EXTRAS
    Feature_SHARED_EXTRAS
@@ -210,9 +216,11 @@ public:
       name = a1;
       type_decl = a2;
       init = a3;
+      is_attr = true;
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
+   Symbol get_name() { return name; }
 
 #ifdef Feature_SHARED_EXTRAS
    Feature_SHARED_EXTRAS
