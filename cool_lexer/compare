@@ -1,0 +1,7 @@
+rm -rf diffResult 1.txt 2.txt
+make clean && make lexer
+./lexer $1 > 1.txt
+./lexer_ref22 $1 > 2.txt
+diff 1.txt 2.txt >> diffResult
+echo '\n\n'
+less diffResult
