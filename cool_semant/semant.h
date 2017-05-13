@@ -28,9 +28,11 @@ private:
   ostream& error_stream;
   std::map<Symbol, std::set<Symbol> > inheritance_graph; 
   std::map<Symbol, class__class*> class_info;
-  
+  std::set<Symbol> basic_class_set;
+
   void install_basic_classes();
-  void install_program_classses(Classes classes);
+  void install_program_classes(Classes classes);
+  void abort();
 
 public:
   ClassTable(Classes);

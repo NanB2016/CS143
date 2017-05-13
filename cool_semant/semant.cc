@@ -7,6 +7,7 @@
 #include "utilities.h"
 
 #define IG(a, b) inheritance_graph[a].insert(b)
+#define CI(a, b) class_info.insert(std::make_pair(a, b))
 
 extern int semant_debug;
 extern char *curr_filename;
@@ -86,7 +87,7 @@ static void initialize_constants(void)
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
   install_basic_classes();
-  install_program_classses(classes);
+  install_program_classes(classes);
 }
 
 void ClassTable::install_basic_classes() {
@@ -189,26 +190,72 @@ void ClassTable::install_basic_classes() {
 						      no_expr()))),
 	       filename);
 
-  // form inheritance graph for basic classes
   IG(No_class, Object);
   IG(Object, IO);
   IG(Object, Int);
   IG(Object, Bool);
   IG(Object, Str);
+
+  CI(Object, (class__class *)Object_class);
+  CI(IO, (class__class *)IO_class);
+  CI(Int, (class__class *)Int_class);
+  CI(Bool, (class__class *)Bool_class);
+  CI(Str, (class__class *)Str_class);
 }
 
-void ClassTable::install_program_classses(Classes classes) {
+void ClassTable::install_program_classes(Classes classes) {
   bool has_main_class = false;
+  
+  // first pass to check and build class_info map
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     class__class* c = (class__class*) classes->nth(i);
-
+    
     // check if the class is already defined
-    if (inheritance_graph.find(c->get_name()) != inheritance_graph.end()) {
+    if (class_info.find(c->get_name()) != class_info.end()) {
       semant_error(c->get_filename(), c)
         << "The class has already been defined: " << c->get_name()
         << endl;
+        abort();
+    }    
+    
+    // check existence of main class
+    if (c->get_name()==Main) {
+      has_main_class = true;
     }
+  
+    CI(c->get_name(), c);
   }
+
+
+  if (!has_main_class) {
+    semant_error()<<"Main class is not defined"<<endl;
+  }
+  
+  // second pass to check and build inheritance map
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    class__class* c = (class__class*) classes->nth(i);
+    Symbol parent = c->get_parent();
+
+    if (parent==Int || parent==Bool || parent==Str || parent==SELF_TYPE) {
+
+      semant_error(c->get_filename(), c)
+      << "parent cannot be basic classes or SELF_TYPE!" << endl;
+      abort();
+    }
+   
+    if (class_info.find(parent)==class_info.end()) {
+      semant_error(c->get_filename(), c)
+      << "parent class does not exist!"<< endl;
+      abort();
+    }
+
+    IG(parent, c->get_name());
+  }
+}
+
+void ClassTable::abort(){
+  cerr<<"Abort compilation"<<endl;
+  exit(1);
 }
 
 ////////////////////////////////////////////////////////////////////
