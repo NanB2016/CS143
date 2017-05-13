@@ -6,6 +6,7 @@
 #include "semant.h"
 #include "utilities.h"
 
+#define IG(a, b) inheritance_graph[a].insert(b)
 
 extern int semant_debug;
 extern char *curr_filename;
@@ -84,9 +85,8 @@ static void initialize_constants(void)
 
 
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
-
-    /* Fill this in */
-
+  install_basic_classes();
+  install_program_classses(classes);
 }
 
 void ClassTable::install_basic_classes() {
@@ -188,6 +188,27 @@ void ClassTable::install_basic_classes() {
 						      Str, 
 						      no_expr()))),
 	       filename);
+
+  // form inheritance graph for basic classes
+  IG(No_class, Object);
+  IG(Object, IO);
+  IG(Object, Int);
+  IG(Object, Bool);
+  IG(Object, Str);
+}
+
+void ClassTable::install_program_classses(Classes classes) {
+  bool has_main_class = false;
+  for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    class__class* c = (class__class*) classes->nth(i);
+
+    // check if the class is already defined
+    if (inheritance_graph.find(c->get_name()) != inheritance_graph.end()) {
+      semant_error(c->get_filename(), c)
+        << "The class has already been defined: " << c->get_name()
+        << endl;
+    }
+  }
 }
 
 ////////////////////////////////////////////////////////////////////
