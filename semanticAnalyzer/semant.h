@@ -8,6 +8,9 @@
 #include "symtab.h"
 #include "list.h"
 
+#include <map>
+#include <set>
+
 #define TRUE 1
 #define FALSE 0
 
@@ -22,8 +25,12 @@ typedef ClassTable *ClassTableP;
 class ClassTable {
 private:
   int semant_errors;
-  void install_basic_classes();
   ostream& error_stream;
+  std::map<Symbol, std::set<Symbol> > inheritance_graph; 
+  std::map<Symbol, class__class*> class_info;
+  
+  void install_basic_classes();
+  void install_program_classses(Classes classes);
 
 public:
   ClassTable(Classes);

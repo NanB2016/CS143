@@ -51,7 +51,7 @@ int max_str_error();
 
 %}
 
-%x COMMENT DASHCOMMENT STRING
+%x COMMENT DASHCOMMENT STRING STRERROR
 
 /*
  * Define names for regular expressions here.
@@ -98,6 +98,7 @@ WHITESPACE	[ \f\r\t\v]
 <COMMENT><<EOF>> { cool_yylval.error_msg = "EOF in comment"; BEGIN(INITIAL); return ERROR; }
 <COMMENT>.	{}
 <COMMENT>\n	{ curr_lineno++; }
+<COMMENT>"(*" { nested_level++; }
 <COMMENT>"*)"	{ nested_level--; if (nested_level==0) {BEGIN(INITIAL);} }
 
 --.*		{ BEGIN(DASHCOMMENT); }	
@@ -184,12 +185,16 @@ WHITESPACE	[ \f\r\t\v]
 <STRING>\\f		{ ADD_NEWCHAR('\f') }
 <STRING>\\\n	{ curr_lineno++; ADD_NEWCHAR('\n') }
 <STRING>\\.		{ ADD_NEWCHAR(yytext[1]) }
-
-<STRING>\0    { cool_yylval.error_msg = "String contains null character"; return ERROR;}
+<STRING>\\\0  { cool_yylval.error_msg = "String contains escaped null character"; BEGIN(STRERROR); return ERROR; }
+<STRING>\0    { cool_yylval.error_msg = "String contains null character"; BEGIN(STRERROR); return ERROR;}
 <STRING><<EOF>>		{ BEGIN(INITIAL); cool_yylval.error_msg = "EOF in string constant"; return ERROR; }
 <STRING>\n		{ cool_yylval.error_msg = "Unterminated string constant"; BEGIN(INITIAL); curr_lineno++; return ERROR; }
 
 <STRING>.	{ ADD_NEWCHAR(yytext[0]) }
+<STRERROR>[^\\]\n { BEGIN(INITIAL); curr_lineno++; }
+<STRERROR>\" { BEGIN(INITIAL); }
+<STRERROR>. {}
+<STRERROR>\n {}
 
 .		{ cool_yylval.error_msg = yytext; return ERROR; }
 
@@ -201,6 +206,7 @@ bool max_str_check(){
 
 int max_str_error(){
 	cool_yylval.error_msg = "String constant too long";
+  BEGIN(STRERROR);
 	return ERROR;
 }
 
