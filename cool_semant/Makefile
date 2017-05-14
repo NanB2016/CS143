@@ -53,6 +53,10 @@ dotest:	semant good.cl bad.cl
 	@echo "\nRunning semantic checker on bad.cl\n"
 	-./mysemant bad.cl
 
+badtest:	semant good.cl bad.cl
+	@echo "\nRunning semantic checker on bad.cl\n"
+	-./mysemant bad.cl
+
 submit: semant
 	$(CLASSDIR)/bin/pa_submit PA3 .
 

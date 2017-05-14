@@ -225,7 +225,7 @@ void ClassTable::install_program_classes(Classes classes) {
     }    
     
     // check existence of main class
-    if (c->get_name()==Main) {
+    if (c->get_name() == Main) {
       has_main_class = true;
     }
   
@@ -242,7 +242,7 @@ void ClassTable::install_program_classes(Classes classes) {
     class__class* c = (class__class*) classes->nth(i);
     Symbol parent = c->get_parent();
 
-    if (parent==Int || parent==Bool || parent==Str || parent==SELF_TYPE) {
+    if (parent==Int || parent==Bool || parent==Str|| parent==SELF_TYPE) {
       semant_error(c->get_filename(), c)
       << "parent cannot be basic classes or SELF_TYPE!" << endl;
     }
@@ -302,7 +302,7 @@ void ClassTable::verify_method_formals(class__class* c, method_class* m) {
     parent_formals = pm->get_formals();
     has_parent_method = true;
     // check return type
-    if (pm->get_return_type()->get_string() != m->get_return_type()->get_string()) {
+    if (pm->get_return_type() != m->get_return_type()) {
       semant_error(c->get_filename(), m)
         << "Inherited method has different return type than parent definition: " << m->get_name()
         << endl;
@@ -315,29 +315,29 @@ void ClassTable::verify_method_formals(class__class* c, method_class* m) {
     }
   }
 
+  // check return type is well defined
+  if (m->get_return_type() != SELF_TYPE &&
+      !class_info.count(m->get_return_type())) {
+      semant_error(c->get_filename(), m)
+        << "method doesn't have a valid return type." << endl;
+  }
+
   for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
     formal_class* fm = (formal_class*) formals->nth(i);
 
     // check formal types
     if (fm->get_name() == self) {
       semant_error(c->get_filename(), m)
-        << "formal cannot by self" << endl;
+        << "formal cannot be self" << endl;
     }
     // check parent method has same formal type
     if (has_parent_method) {
       formal_class* pfm = (formal_class*) parent_formals->nth(i);
-      if (fm->get_type_decl()->get_string() != pfm->get_type_decl()->get_string()) {
+      if (fm->get_type_decl() != pfm->get_type_decl()) {
         semant_error(c->get_filename(), m)
           << "Inherited method has different formal type: "
           << fm->get_name() << endl;
       }
-    }
-
-    // check return type is well defined
-    if (m->get_return_type() != SELF_TYPE &&
-        !class_info.count(m->get_return_type())) {
-        semant_error(c->get_filename(), m)
-          << "method doesn't have a valid return type." << endl;
     }
   }
 }
@@ -355,18 +355,19 @@ void ClassTable::install_class_features() {
     class__class* cls = class_info[c];
     Features features = cls->get_features();
 
-    // inherit all parent class features
-    class_method_map[c] = class_method_map[cls->get_parent()];
-    class_attr_map[c] = class_attr_map[cls->get_parent()];
-
     for(int i = features->first(); features->more(i); i = features->next(i)) {
       Feature f = features->nth(i);
 
       if (f->is_attribute()) {
         attr_class* a = (attr_class*) f;
-        if (class_attr_map[c].count(a->get_name())) {
-          semant_error(cls->get_filename(), cls)
+        if (class_attr_map[cls->get_parent()].count(a->get_name())) {
+          semant_error(cls->get_filename(), a)
             << "Attributes definted in parent class cannot be redefined: "
+            << a->get_name() << endl;
+        }
+        if (class_attr_map[c].count(a->get_name())) {
+          semant_error(cls->get_filename(), a)
+            << "Attributes cannot be redefined: "
             << a->get_name() << endl;
         }
         class_attr_map[c][a->get_name()] = a;
@@ -376,16 +377,28 @@ void ClassTable::install_class_features() {
 
         if (c ==  Main && m->get_name() == main_meth) {
           if (m->get_formals()->len() > 0) {
-            semant_error(cls->get_filename(), cls)
+            semant_error(cls->get_filename(), m)
               << "Formals are not allowed in main function. "
               << endl;
           }
           has_main_method = true;
         }
-        class_method_map[c][m->get_name()] = m;
+        
+        if (class_method_map[c].count(m->get_name())){
+          semant_error(cls->get_filename(), m)
+          << "Method definition duplicates within class:"
+          << c << endl;
+        }
+        else{
+          class_method_map[c][m->get_name()] = m;
+        }
       }
     }
 
+    // inherit all parent class features
+    class_method_map[c].insert(class_method_map[cls->get_parent()].begin(), class_method_map[cls->get_parent()].end());
+    class_attr_map[c].insert(class_attr_map[cls->get_parent()].begin(), class_attr_map[cls->get_parent()].end());
+    
     // enqueue all child classes
     std::set<Symbol> child_classes = inheritance_graph[c];
     SymSetIter it = child_classes.begin();
@@ -396,7 +409,7 @@ void ClassTable::install_class_features() {
   }
 
   if (!has_main_method) {
-    semant_error() << "No main method defined!" << endl;
+    semant_error() << "No main method defined within Main class!" << endl;
   }
 }
 
