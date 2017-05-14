@@ -687,9 +687,14 @@ void TypeChecker::check(Expression_class* e) {
 }
 
 void TypeChecker::check(isvoid_class* e) {
+  check(e->get_e1());
+  e->set_type(Bool);
 }
 
 void TypeChecker::check(new__class* e) {
+  
+  e->set_type(e->get_type_name());
+  
 }
 
 void TypeChecker::check(no_expr_class* e) {
@@ -724,30 +729,61 @@ void TypeChecker::check(cond_class* e) {
 }
 
 void TypeChecker::check(loop_class* e) {
+  check(e->get_pred());
+  check(e->get_body());
+  if (e->get_pred()->get_type()!= Bool){
+    semant_error(e) << "Loop pred is not Bool" << endl;
+  }
+  e->set_type(Object);
 }
 
 void TypeChecker::check(typcase_class* e) {
 }
 
 void TypeChecker::check(block_class* e) {
+  Expressions body = e->get_body();
+  Symbol type = NULL;
+
+  for (int i = body->first(); body->more(i); i = body->next(i) ){
+    Expression_class* ex = (Expression_class*) body->nth(i);
+    check(ex);
+    type = ex->get_type();
+  }
+
+  e->set_type(type);
 }
 
 void TypeChecker::check(let_class* e) {
 }
 
-void TypeChecker::arithmetic_check(Expression e1, Expression e2) {
+void TypeChecker::arithmetic_check(
+  Expression e,
+  Expression e1,
+  Expression e2
+) {
+  check(e1);
+  check(e2);
+  if (e1->get_type() == Int && e2->get_type() == Int){
+    e->set_type(Int);
+  }else{
+    semant_error(e) << "Wrong types are used for arithmetic operation" << endl;
+  }
 }
 
 void TypeChecker::check(plus_class* e) {
+  arithmetic_check(e, e->get_e1(), e->get_e2());
 }
 
 void TypeChecker::check(sub_class* e) {
+  arithmetic_check(e, e->get_e1(), e->get_e2());
 }
 
 void TypeChecker::check(mul_class* e) {
+  arithmetic_check(e, e->get_e1(), e->get_e2());
 }
 
 void TypeChecker::check(divide_class* e) {
+  arithmetic_check(e, e->get_e1(), e->get_e2());
 }
 
 void TypeChecker::check(neg_class* e) {
@@ -772,6 +808,16 @@ void TypeChecker::check(lt_class* e) {
 }
 
 void TypeChecker::check(eq_class* e) {
+  check(e->get_e1());
+  check(e->get_e2());
+  Symbol type1 = e->get_e1()->get_type();
+  Symbol type2 = e->get_e2()->get_type();
+  bool isBasic = type1 == Int || type1 == Str || type1 == Bool;
+  if (type1 == type2 && isBasic){
+    e->set_type(Bool);
+  }else{
+    semant_error(e) << "Eq subexpression type is not correct" << endl;
+  }
 }
 
 void TypeChecker::check(leq_class* e) {

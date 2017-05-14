@@ -64,7 +64,7 @@ private:
   void enterscope() { symbol_table.enterscope(); }
   void exitscope() { symbol_table.exitscope(); }
   ostream& semant_error(tree_node *t);
-  void arithmetic_check(Expression e1, Expression e2);
+  void arithmetic_check(Expression e, Expression e1, Expression e2);
 
 public:
   TypeChecker(ClassTable* c) : class_table(c), current_class(NULL) {};
