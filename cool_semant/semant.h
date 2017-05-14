@@ -31,7 +31,6 @@ private:
   ostream& error_stream;
   std::map<Symbol, std::set<Symbol> > inheritance_graph; 
   std::map<Symbol, class__class*> class_info;
-  std::set<Symbol> basic_class_set;
   std::map<Symbol, std::map<Symbol, method_class*> > class_method_map;
   std::map<Symbol, std::map<Symbol, attr_class*> > class_attr_map;
 

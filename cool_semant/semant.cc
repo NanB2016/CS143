@@ -296,9 +296,9 @@ void ClassTable::verify_method_formals(class__class* c, method_class* m) {
   bool has_parent_method = false;
   Formals formals = m->get_formals();
 
-  if (class_method_map[c->get_name()].count(m->get_name())) {
+  if (class_method_map[c->get_parent()].count(m->get_name())) {
     method_class* pm = 
-      (method_class*) class_method_map[c->get_name()][m->get_name()];
+      (method_class*) class_method_map[c->get_parent()][m->get_name()];
     parent_formals = pm->get_formals();
     has_parent_method = true;
     // check return type
@@ -340,7 +340,6 @@ void ClassTable::verify_method_formals(class__class* c, method_class* m) {
           << "method doesn't have a valid return type." << endl;
     }
   }
-  return;
 }
 
 void ClassTable::install_class_features() {
