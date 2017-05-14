@@ -383,7 +383,11 @@ public:
    }
    Expression copy_Expression();
    void dump(ostream& stream, int n);
+   Expression get_pred() { return pred; }
+   Expression get_then_exp() { return then_exp; }
+   Expression get_else_exp() { return else_exp; }
 
+  
 #ifdef Expression_SHARED_EXTRAS
    Expression_SHARED_EXTRAS
 #endif
@@ -478,6 +482,10 @@ public:
    Expression copy_Expression();
    void dump(ostream& stream, int n);
    Symbol get_type_decl() { return type_decl; }
+   Symbol get_identifier() { return identifier; }
+   Expression get_init() { return init; }
+   Expression get_body() { return body; }
+
 
 #ifdef Expression_SHARED_EXTRAS
    Expression_SHARED_EXTRAS

@@ -941,6 +941,27 @@ void TypeChecker::check(dispatch_class* e) {
 }
 
 void TypeChecker::check(cond_class* e) {
+  Expression pred = e->get_pred();
+  Expression then_exp = e->get_then_exp();
+  Expression else_exp = e->get_else_exp();
+  
+  check(pred);
+  check(then_exp);
+  check(else_exp);
+  
+  if (pred->get_type()==Bool){
+    e->set_type(
+      class_table->least_upper_bound(
+        then_exp->get_type(), 
+        else_exp->get_type(), 
+        current_class->get_name()
+      )
+    );
+  } else {
+      semant_error(e) << "cond pred is not Bool!" << endl;
+      e->set_type(Object);
+      return;
+  }
 }
 
 void TypeChecker::check(loop_class* e) {
