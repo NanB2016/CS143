@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <typeinfo>
 #include "semant.h"
 #include "utilities.h"
 
@@ -699,6 +700,12 @@ void TypeChecker::check(object_class* e) {
 }
 
 void TypeChecker::check(comp_class* e) {
+  check(e->get_e1());
+  if (e->get_e1()->get_type() == Bool){
+    e->set_type(Bool);
+  }else{
+    semant_error(e) << "comp subexpression type is not Bool!" << endl;
+  }
 }
 
 void TypeChecker::check(branch_class* e) {
@@ -768,15 +775,27 @@ void TypeChecker::check(eq_class* e) {
 }
 
 void TypeChecker::check(leq_class* e) {
+  check(e->get_e1());
+  check(e->get_e2());
+  Symbol type1 = e->get_e1()->get_type();
+  Symbol type2 = e->get_e2()->get_type();
+  if (type1 == Int && type2 == Int){
+    e->set_type(Bool);
+  } else {
+    semant_error(e) << "leq subexpression type is not Int" << endl;
+  }
 }
 
 void TypeChecker::check(int_const_class* e) {
+  e->set_type(Int);
 }
 
 void TypeChecker::check(bool_const_class* e) {
+  e->set_type(Bool);
 }
 
 void TypeChecker::check(string_const_class* e) {
+ e->set_type(Str);
 }
 
 
