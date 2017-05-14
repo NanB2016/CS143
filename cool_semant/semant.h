@@ -37,10 +37,11 @@ private:
 
   void install_basic_classes();
   void install_program_classes(Classes classes);
-  void has_cycle();
+  void check_cycle();
   void DFS(std::set<Symbol> visited, Symbol c);
-  void install_class_methods();
+  void install_class_features();
   void abort();
+  void verify_method_formals(class__class*, method_class*);
 
 public:
   ClassTable(Classes);

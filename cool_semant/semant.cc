@@ -90,13 +90,11 @@ static void initialize_constants(void)
 ClassTable::ClassTable(Classes classes) : semant_errors(0) , error_stream(cerr) {
   install_basic_classes();
   install_program_classes(classes);
-  has_cycle();
-
-  if (cycle_found){
-    cerr<<"cycle exists in inheritance graph!" << endl;
+  check_cycle();
+  install_class_features();
+  if (semant_errors > 0) {
+    abort();
   }
-
-  install_class_methods();
 }
 
 void ClassTable::install_basic_classes() {
@@ -224,7 +222,6 @@ void ClassTable::install_program_classes(Classes classes) {
       semant_error(c->get_filename(), c)
         << "The class has already been defined: " << c->get_name()
         << endl;
-        abort();
     }    
     
     // check existence of main class
@@ -248,58 +245,105 @@ void ClassTable::install_program_classes(Classes classes) {
     if (parent==Int || parent==Bool || parent==Str || parent==SELF_TYPE) {
       semant_error(c->get_filename(), c)
       << "parent cannot be basic classes or SELF_TYPE!" << endl;
-      abort();
     }
    
     if (class_info.find(parent)==class_info.end()) {
       semant_error(c->get_filename(), c)
       << "parent class does not exist!"<< endl;
-      abort();
     }
 
     IG(parent, c->get_name());
   }
 }
 
-void ClassTable::has_cycle(){
+void ClassTable::check_cycle(){
   cycle_found = false;
 
-  std::map<Symbol, std::set<Symbol> >:: iterator iter1;
+  std::map<Symbol, std::set<Symbol> >:: iterator it;
   std::set<Symbol> visited;
 
-  for (iter1 = inheritance_graph.begin(); iter1 != inheritance_graph.end(); ++iter1){
-     DFS(visited, iter1->first);
+  for (it = inheritance_graph.begin(); it != inheritance_graph.end(); ++it){
+     DFS(visited, it->first);
      if (cycle_found){
        break;
      }
   }
 
+  if (cycle_found){
+    semant_error() << "cycle exists in inheritance graph!" << endl;
+  }
 }
 
 void ClassTable::DFS(std::set<Symbol> visited, Symbol c){
-  std::set<Symbol>::iterator iter2;
+  std::set<Symbol>::iterator it;
   
   if (visited.find(c)!=visited.end()){
-
     cycle_found = true;
     return;
   }
   else{
-
     visited.insert(c);
-    
   }
 
-  for (iter2 = inheritance_graph[c].begin(); iter2!= inheritance_graph
-    [c].end(); ++iter2){
+  for (it = inheritance_graph[c].begin(); it!= inheritance_graph [c].end(); ++it){
+    DFS(visited, *it);
+  }
+}
 
-    DFS(visited, *iter2);
+void ClassTable::verify_method_formals(class__class* c, method_class* m) {
+  // use to verify inherited method has the same formals
+  Formals parent_formals = NULL;
+  bool has_parent_method = false;
+  Formals formals = m->get_formals();
+
+  if (class_method_map[c->get_name()].count(m->get_name())) {
+    method_class* pm = 
+      (method_class*) class_method_map[c->get_name()][m->get_name()];
+    parent_formals = pm->get_formals();
+    has_parent_method = true;
+    // check return type
+    if (pm->get_return_type()->get_string() != m->get_return_type()->get_string()) {
+      semant_error(c->get_filename(), m)
+        << "Inherited method has different return type than parent definition: " << m->get_name()
+        << endl;
+    }
+    // check # of formals are the same
+    if (formals->len() != parent_formals->len()) {
+      semant_error(c->get_filename(), m)
+        << "Inherited method has different number of formals than parent definition: " << m->get_name()
+        << endl;
+    }
   }
 
+  for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
+    formal_class* fm = (formal_class*) formals->nth(i);
+
+    // check formal types
+    if (fm->get_name() == self) {
+      semant_error(c->get_filename(), m)
+        << "formal cannot by self" << endl;
+    }
+    // check parent method has same formal type
+    if (has_parent_method) {
+      formal_class* pfm = (formal_class*) parent_formals->nth(i);
+      if (fm->get_type_decl()->get_string() != pfm->get_type_decl()->get_string()) {
+        semant_error(c->get_filename(), m)
+          << "Inherited method has different formal type: "
+          << fm->get_name() << endl;
+      }
+    }
+
+    // check return type is well defined
+    if (m->get_return_type() != SELF_TYPE &&
+        !class_info.count(m->get_return_type())) {
+        semant_error(c->get_filename(), m)
+          << "method doesn't have a valid return type." << endl;
+    }
+  }
   return;
 }
 
-void ClassTable::install_class_methods() {
+void ClassTable::install_class_features() {
   bool has_main_method = false;
 
   // Use BFS to iterate over all class top-down, and fill in the class-methods map
@@ -308,16 +352,38 @@ void ClassTable::install_class_methods() {
   while (!class_queue.empty()) {
     Symbol c = class_queue.front();
     class_queue.pop();
-    Features features = class_info[c]->get_features();
+
+    class__class* cls = class_info[c];
+    Features features = cls->get_features();
+
+    // inherit all parent class features
+    class_method_map[c] = class_method_map[cls->get_parent()];
+    class_attr_map[c] = class_attr_map[cls->get_parent()];
 
     for(int i = features->first(); features->more(i); i = features->next(i)) {
       Feature f = features->nth(i);
 
       if (f->is_attribute()) {
-        continue;
+        attr_class* a = (attr_class*) f;
+        if (class_attr_map[c].count(a->get_name())) {
+          semant_error(cls->get_filename(), cls)
+            << "Attributes definted in parent class cannot be redefined: "
+            << a->get_name() << endl;
+        }
+        class_attr_map[c][a->get_name()] = a;
       } else { //method
-        method_class* method = (method_class*) f;
-        class_method_map[c][method->get_name()] = method;
+        method_class* m = (method_class*) f;
+        verify_method_formals(cls, m);
+
+        if (c ==  Main && m->get_name() == main_meth) {
+          if (m->get_formals()->len() > 0) {
+            semant_error(cls->get_filename(), cls)
+              << "Formals are not allowed in main function. "
+              << endl;
+          }
+          has_main_method = true;
+        }
+        class_method_map[c][m->get_name()] = m;
       }
     }
 
