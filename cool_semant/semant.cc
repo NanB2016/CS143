@@ -764,6 +764,8 @@ Symbol TypeChecker::get_tree_node_type(tree_node* node) {
     type = ((attr_class*) node)->get_type_decl();
   } else if (typeid(*node) == typeid(formal_class)) {
     type = ((formal_class*) node)->get_type_decl();
+  } else if (typeid(*node) == typeid(branch_class)) {
+    type = ((branch_class*) node)->get_type_decl();
   } else if (typeid(*node) == typeid(let_class)) {
     type = ((let_class*) node)->get_type_decl();
   }
@@ -955,7 +957,7 @@ void TypeChecker::check(cond_class* e) {
   check(then_exp);
   check(else_exp);
   
-  if (pred->get_type()==Bool){
+  if (pred->get_type() == Bool){
     e->set_type(
       class_table->least_upper_bound(
         then_exp->get_type(), 
@@ -964,9 +966,8 @@ void TypeChecker::check(cond_class* e) {
       )
     );
   } else {
-      semant_error(e) << "cond pred is not Bool!" << endl;
-      e->set_type(Object);
-      return;
+    semant_error(e) << "cond pred is not Bool!" << endl;
+    e->set_type(Object);
   }
 }
 
@@ -1022,7 +1023,33 @@ void TypeChecker::check(block_class* e) {
 }
 
 void TypeChecker::check(let_class* e) {
+  Symbol type_decl = e->get_type_decl();
+  Symbol identifier = e->get_identifier();
+  Expression body = e->get_body();
+  Expression init = e->get_init();
+
+  if (type_decl == SELF_TYPE) type_decl = current_class->get_name();
+  if (identifier == self){
+    semant_error(e) << "let identifier cannot be self" << endl;
+  }
+  
+  enterscope();
+  addid(identifier, e);
+  check(body);
+  exitscope();
+
+  if (typeid(*init) != typeid(no_expr_class)) {
+    check(init);
+    if (class_table->check_child_class(type_decl, init->get_type())){
+      e->set_type(body->get_type());
+    } else {
+      semant_error(e) 
+        << "let init and declared type are not compatible!" << endl;
+      e->set_type(Object);
+    }
+  }
 }
+
 
 void TypeChecker::arithmetic_check(
   Expression e,
