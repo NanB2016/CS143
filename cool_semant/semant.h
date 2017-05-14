@@ -50,6 +50,24 @@ public:
   ostream& semant_error(Symbol filename, tree_node *t);
 };
 
+class TypeChecker {
+private:
+  SymbolTable<Symbol, tree_node> symbol_table;
+  ClassTable* class_table;
+  class__class* current_class;
+
+public:
+  TypeChecker(ClassTable* c) : class_table(c), current_class(NULL) {};
+  ostream& semant_error(tree_node *t);
+
+  tree_node* probe(Symbol a) { return symbol_table.probe(a); }
+  tree_node* lookup(Symbol a) { return symbol_table.lookup(a); }
+  void addid(Symbol a, tree_node* n) { symbol_table.addid(a, n); } 
+  void enterscope() { symbol_table.enterscope(); }
+  void exitscope() { symbol_table.exitscope(); }
+
+  void check(program_class*);
+};
 
 #endif
 

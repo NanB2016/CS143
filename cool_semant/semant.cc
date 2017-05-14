@@ -459,12 +459,25 @@ void program_class::semant()
     /* ClassTable constructor may do some semantic analysis */
     ClassTable *classtable = new ClassTable(classes);
 
+    TypeChecker typechecker(classtable);
     /* some semantic analysis code may go here */
+
+    typechecker.check(this);
 
     if (classtable->errors()) {
 	cerr << "Compilation halted due to static semantic errors." << endl;
 	exit(1);
     }
+    delete classtable;
 }
 
+ostream& TypeChecker::semant_error(tree_node *t) {
+  if (current_class) {
+    return class_table->semant_error(current_class->get_filename(), t);
+  } else {
+    return class_table->semant_error();
+  }
+}
 
+void TypeChecker::check(program_class* p) {
+}
