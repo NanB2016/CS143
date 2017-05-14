@@ -792,11 +792,22 @@ void TypeChecker::check(assign_class* e) {
 
 void TypeChecker::check(static_dispatch_class* e) {
   check(e->get_expr());
+  
+  Expressions actual = e->get_actual();
+  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+    Expression_class* a = (Expression_class*) actual->nth(i);
+    check(a);
+  }
+
   // check the type of the call function is well defined
   Symbol type_name = e->get_type_name();
   Symbol expr_type = e->get_expr()->get_type();
-  if (type_name == SELF_TYPE) type_name = current_class->get_name();
-  if (expr_type == SELF_TYPE) expr_type = current_class->get_name();
+
+  if (type_name == SELF_TYPE) {
+    semant_error(e) << "static type T cannot be SELF_TYPE" << endl;
+    e->set_type(Object);
+    return;
+  }
 
   if (!class_table->check_class_exists(type_name)) {
     semant_error(e) << "static dispatch class doesn't exist." << endl;
@@ -816,7 +827,8 @@ void TypeChecker::check(static_dispatch_class* e) {
 
   // check actuals are well typed
   method_class* method = class_table->get_method(type_name, e->get_name());
-  if (!check_method(e, method, e->get_actual())) {
+  check(method);
+  if (!check_actuals(e, method, e->get_actual())) {
     e->set_type(Object);
     return;
   }
@@ -824,12 +836,12 @@ void TypeChecker::check(static_dispatch_class* e) {
   // set return type to tree node type
   Symbol return_type = method->get_return_type();
   if (return_type == SELF_TYPE) {
-    return_type = current_class->get_name();
+    return_type = expr_type;
   }
   e->set_type(return_type);
 }
 
-bool TypeChecker::check_method(
+bool TypeChecker::check_actuals(
   Expression e, 
   method_class* method, 
   Expressions actuals
@@ -843,12 +855,15 @@ bool TypeChecker::check_method(
   for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
     formal_class* f = (formal_class*) formals->nth(i);
     Expression a = actuals->nth(i);
-    check(a);
     
     Symbol formal_type = f->get_type_decl();
     Symbol actual_type = a->get_type();
-    if (formal_type == SELF_TYPE) formal_type = current_class->get_name();
-    if (actual_type == SELF_TYPE) actual_type = current_class->get_name();
+    if (formal_type == SELF_TYPE) {
+      semant_error(e) << "formal cannot be SELF_TYPE!" << endl;
+    }
+    if (actual_type == SELF_TYPE) {
+      semant_error(e) << "actual cannot be SELF_TYPE!" << endl;
+      }
     if (!class_table->check_child_class(formal_type, actual_type)) {
       semant_error(e) << "declaration type " << formal_type
         << " doesn't match actual type " << actual_type
@@ -860,6 +875,39 @@ bool TypeChecker::check_method(
 }
 
 void TypeChecker::check(dispatch_class* e) {
+  check(e->get_expr());
+  
+  Expressions actual = e->get_actual();
+  for (int i = actual->first(); actual->more(i); i = actual->next(i)) {
+    Expression_class* a = (Expression_class*) actual->nth(i);
+    check(a);
+  }
+  
+  // check the type of the call function is well defined
+  Symbol expr_type = e->get_expr()->get_type();
+  
+  if (expr_type == SELF_TYPE) expr_type =  current_class->get_name();
+
+  if (!class_table->has_method(expr_type, e->get_name())) {
+    semant_error(e) << "dispatch method doesn't exist for the class. " << endl;
+    e->set_type(Object);
+    return;
+  }
+
+  // check actuals are well typed
+  method_class* method = class_table->get_method(expr_type, e->get_name());
+  check(method);
+  if (!check_actuals(e, method, e->get_actual())) {
+    e->set_type(Object);
+    return;
+  }
+
+  // set return type to tree node type
+  Symbol return_type = method->get_return_type();
+  if (return_type == SELF_TYPE) {
+    return_type = expr_type;
+  }
+  e->set_type(return_type);
 }
 
 void TypeChecker::check(cond_class* e) {

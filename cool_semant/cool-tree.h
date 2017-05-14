@@ -356,6 +356,9 @@ public:
    }
    Expression copy_Expression();
    void dump(ostream& stream, int n);
+   Expression get_expr() { return expr; }
+   Symbol get_name() { return name; }
+   Expressions get_actual() { return actual; }
 
 #ifdef Expression_SHARED_EXTRAS
    Expression_SHARED_EXTRAS
