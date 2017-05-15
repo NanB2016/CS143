@@ -138,6 +138,7 @@ public:
    }
    Program copy_Program();
    void dump(ostream& stream, int n);
+   Classes get_classes() { return classes; }
 
 #ifdef Program_SHARED_EXTRAS
    Program_SHARED_EXTRAS

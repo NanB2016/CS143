@@ -56,17 +56,53 @@ private:
   ClassTable* class_table;
   class__class* current_class;
 
-public:
-  TypeChecker(ClassTable* c) : class_table(c), current_class(NULL) {};
-  ostream& semant_error(tree_node *t);
-
   tree_node* probe(Symbol a) { return symbol_table.probe(a); }
   tree_node* lookup(Symbol a) { return symbol_table.lookup(a); }
   void addid(Symbol a, tree_node* n) { symbol_table.addid(a, n); } 
   void enterscope() { symbol_table.enterscope(); }
   void exitscope() { symbol_table.exitscope(); }
+  ostream& semant_error(tree_node *t);
+
+public:
+  TypeChecker(ClassTable* c) : class_table(c), current_class(NULL) {};
 
   void check(program_class*);
+  void check(class__class*);
+  void check(attr_class*);
+  void check(method_class*);
+  void check(formal_class*);
+
+  void check(Expression_class*);
+  void check(isvoid_class*);
+  void check(new__class*);
+  void check(no_expr_class*);
+  void check(object_class*);
+  void check(comp_class*);
+
+  void check(branch_class*);
+  void check(assign_class*);
+  void check(static_dispatch_class*);
+  void check(dispatch_class*);
+  void check(cond_class*);
+  void check(loop_class*);
+  void check(typcase_class*);
+  void check(block_class*);
+  void check(let_class*);
+
+  void check(plus_class*);
+  void check(sub_class*);
+  void check(mul_class*);
+  void check(divide_class*);
+  void check(neg_class*);
+
+  void check(lt_class*);
+  void check(eq_class*);
+  void check(leq_class*);
+
+  void check(int_const_class*);
+  void check(bool_const_class*);
+  void check(string_const_class*);
+
 };
 
 #endif

@@ -480,4 +480,50 @@ ostream& TypeChecker::semant_error(tree_node *t) {
 }
 
 void TypeChecker::check(program_class* p) {
+  enterscope();
+  Classes classes = p->get_classes();
+  for(int i =classes->first(); classes->more(i); i=classes->next(i)) {
+    class__class* cls = (class__class*)classes->nth(i);
+    check(cls);
+  }
+  exitscope();
 }
+
+void TypeChecker::check(class__class* cls) {
+  enterscope();
+  Features features = cls->get_features();
+  for(int i = features->first(); features->more(i); i = features->next(i)) {
+    Feature f = (Feature) features->nth(i);
+    if (f->is_attribute()) {
+      attr_class* a = (attr_class*) f;
+      tree_node* n = probe(a->get_name());
+      if (n == NULL || typeid(n) != typeid(attr_class)) {
+        addid(a->get_name(), a);
+      }
+      check(a);
+    } else {
+      method_class* m = (method_class*) f;
+      check(m);
+    }
+  }
+  exitscope();
+}
+
+void TypeChecker::check(attr_class* a) {
+  enterscope();
+  exitscope();
+}
+
+void TypeChecker::check(method_class* m) {
+  enterscope();
+  Formals formals = m->get_formals();
+  for(int i =formals->first(); formals->more(i); i=formals->next(i)) {
+    formal_class* f = (formal_class*)formals->nth(i);
+    check(f);
+  }
+  exitscope();
+}
+
+void TypeChecker::check(formal_class* f) {
+}
+
