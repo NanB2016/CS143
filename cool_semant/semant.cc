@@ -685,79 +685,98 @@ void TypeChecker::check(Expression_class* e) {
   }
 }
 
-void TypeChecker::check(isvoid_class*) {
+void TypeChecker::check(isvoid_class* e) {
 }
 
-void TypeChecker::check(new__class*) {
+void TypeChecker::check(new__class* e) {
 }
 
-void TypeChecker::check(no_expr_class*) {
+void TypeChecker::check(no_expr_class* e) {
+  return;
 }
 
-void TypeChecker::check(object_class*) {
+void TypeChecker::check(object_class* e) {
 }
 
-void TypeChecker::check(comp_class*) {
+void TypeChecker::check(comp_class* e) {
 }
 
-void TypeChecker::check(branch_class*) {
+void TypeChecker::check(branch_class* e) {
 }
 
-void TypeChecker::check(assign_class*) {
+void TypeChecker::check(assign_class* e) {
 }
 
-void TypeChecker::check(static_dispatch_class*) {
+void TypeChecker::check(static_dispatch_class* e) {
 }
 
-void TypeChecker::check(dispatch_class*) {
+void TypeChecker::check(dispatch_class* e) {
 }
 
-void TypeChecker::check(cond_class*) {
+void TypeChecker::check(cond_class* e) {
 }
 
-void TypeChecker::check(loop_class*) {
+void TypeChecker::check(loop_class* e) {
 }
 
-void TypeChecker::check(typcase_class*) {
+void TypeChecker::check(typcase_class* e) {
 }
 
-void TypeChecker::check(block_class*) {
+void TypeChecker::check(block_class* e) {
 }
 
-void TypeChecker::check(let_class*) {
+void TypeChecker::check(let_class* e) {
 }
 
-void TypeChecker::check(plus_class*) {
+void TypeChecker::arithmetic_check(Expression e1, Expression e2) {
 }
 
-void TypeChecker::check(sub_class*) {
+void TypeChecker::check(plus_class* e) {
 }
 
-void TypeChecker::check(mul_class*) {
+void TypeChecker::check(sub_class* e) {
 }
 
-void TypeChecker::check(divide_class*) {
+void TypeChecker::check(mul_class* e) {
 }
 
-void TypeChecker::check(neg_class*) {
+void TypeChecker::check(divide_class* e) {
 }
 
-void TypeChecker::check(lt_class*) {
+void TypeChecker::check(neg_class* e) {
+  check(e->get_e1());
+  if (e->get_e1()->get_type() == Int) {
+    e->set_type(Int);
+  } else {
+    semant_error(e) << "Only integer can be negated." << endl;
+  }
 }
 
-void TypeChecker::check(eq_class*) {
+void TypeChecker::check(lt_class* e) {
+  check(e->get_e1());
+  check(e->get_e2());
+  
+  if (e->get_e1()->get_type() != Int || e->get_e2()->get_type() != Int) {
+    semant_error(e) << "Cannot compare non-integers. " << endl;
+    return;
+  }
+
+  e->set_type(Bool);
 }
 
-void TypeChecker::check(leq_class*) {
+void TypeChecker::check(eq_class* e) {
 }
 
-void TypeChecker::check(int_const_class*) {
+void TypeChecker::check(leq_class* e) {
 }
 
-void TypeChecker::check(bool_const_class*) {
+void TypeChecker::check(int_const_class* e) {
 }
 
-void TypeChecker::check(string_const_class*) {
+void TypeChecker::check(bool_const_class* e) {
+}
+
+void TypeChecker::check(string_const_class* e) {
 }
 
 
