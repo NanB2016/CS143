@@ -225,6 +225,8 @@ public:
    Feature copy_Feature();
    void dump(ostream& stream, int n);
    Symbol get_name() { return name; }
+   Expression get_init() { return init; }
+   Symbol get_type_decl() { return type_decl; }
 
 #ifdef Feature_SHARED_EXTRAS
    Feature_SHARED_EXTRAS

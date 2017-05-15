@@ -405,6 +405,18 @@ void ClassTable::abort(){
   exit(1);
 }
 
+bool ClassTable::check_child_class(Symbol parent, Symbol child) {
+  while (parent != child && child != Object) {
+    if (class_info.count(child)) break;
+    child = class_info[child]->get_parent();
+  }
+  return parent == child;
+}
+
+bool ClassTable::check_class_exists(Symbol c) {
+  return c == SELF_TYPE || class_info.count(c);
+}
+
 ////////////////////////////////////////////////////////////////////
 //
 // semant_error is an overloaded function for reporting errors
@@ -491,13 +503,14 @@ void TypeChecker::check(program_class* p) {
 
 void TypeChecker::check(class__class* cls) {
   enterscope();
+  current_class = cls;
   Features features = cls->get_features();
   for(int i = features->first(); features->more(i); i = features->next(i)) {
     Feature f = (Feature) features->nth(i);
     if (f->is_attribute()) {
       attr_class* a = (attr_class*) f;
       tree_node* n = probe(a->get_name());
-      if (n == NULL || typeid(n) != typeid(attr_class)) {
+      if (n == NULL || typeid(*n) != typeid(attr_class)) {
         addid(a->get_name(), a);
       }
       check(a);
@@ -511,6 +524,34 @@ void TypeChecker::check(class__class* cls) {
 
 void TypeChecker::check(attr_class* a) {
   enterscope();
+  if (a->get_name() == self) {
+    semant_error(a) << "attribute cannot be self type." << endl;
+  }
+
+  if (!class_table->check_class_exists(a->get_type_decl())) {
+    semant_error(a) << "attribute's class "
+      << a->get_type_decl() << " is undefined." << endl;
+  }
+
+  Expression e = a->get_init(); 
+  check(e);
+  // no initialization
+  if (e->get_type() == NULL) return;
+
+  // check init type matches declaration type
+  Symbol decl_type = a->get_type_decl();
+  Symbol init_type = e->get_type();
+  if (decl_type == SELF_TYPE) {
+    decl_type = current_class->get_name();
+  }
+  if (init_type == SELF_TYPE) {
+    init_type = current_class->get_name();
+  }
+  if (!class_table->check_child_class(decl_type, init_type)) {
+    semant_error(a) << "attribute " << a->get_name()
+      << " declaratino type " << decl_type 
+      << " doesn't match initialization type " << init_type << endl;
+  }
   exitscope();
 }
 
@@ -521,9 +562,189 @@ void TypeChecker::check(method_class* m) {
     formal_class* f = (formal_class*)formals->nth(i);
     check(f);
   }
+
+  check(m->get_expr());
+
+  // check return type through graph inheritance graph
+  Symbol return_type_method = m->get_return_type();
+  Symbol return_type_expr = m->get_expr()->get_type();
+  if (return_type_method == SELF_TYPE) {
+    return_type_method = current_class->get_name();
+  }
+  if (return_type_expr == SELF_TYPE) {
+    return_type_expr = current_class->get_name();
+  }
+  if (!class_table->check_child_class(return_type_method, return_type_expr)) {
+    semant_error(m) << "method return types don't match." << endl;
+  }
   exitscope();
 }
 
 void TypeChecker::check(formal_class* f) {
+  enterscope();
+  if (!class_table->check_class_exists(f->get_type_decl())) {
+    semant_error(f) << "Formal " << f->get_name() 
+      <<" deslaration class " << f->get_type_decl()
+      << " doesn't exist." << endl;
+  }
+  if (f->get_type_decl() == SELF_TYPE) {
+    semant_error(f) << "Formal " << f->get_name() 
+      << " type cannot be SELF_TYPE." << endl;
+  }
+  exitscope();
 }
+
+void TypeChecker::check(Expression_class* e) {
+  if (typeid(*e) == typeid(isvoid_class)) {
+    isvoid_class* ce = (isvoid_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(new__class)) {
+    new__class* ce = (new__class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(no_expr_class)) {
+    no_expr_class* ce = (no_expr_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(object_class)) {
+    object_class* ce = (object_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(comp_class)) {
+    comp_class* ce = (comp_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(branch_class)) {
+    branch_class* ce = (branch_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(assign_class)) {
+    assign_class* ce = (assign_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(static_dispatch_class)) {
+    static_dispatch_class* ce = (static_dispatch_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(dispatch_class)) {
+    dispatch_class* ce = (dispatch_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(cond_class)) {
+    cond_class* ce = (cond_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(loop_class)) {
+    loop_class* ce = (loop_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(typcase_class)) {
+    typcase_class* ce = (typcase_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(block_class)) {
+    block_class* ce = (block_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(let_class)) {
+    let_class* ce = (let_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(plus_class)) {
+    plus_class* ce = (plus_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(sub_class)) {
+    sub_class* ce = (sub_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(mul_class)) {
+    mul_class* ce = (mul_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(divide_class)) {
+    divide_class* ce = (divide_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(neg_class)) {
+    neg_class* ce = (neg_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(lt_class)) {
+    lt_class* ce = (lt_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(eq_class)) {
+    eq_class* ce = (eq_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(leq_class)) {
+    leq_class* ce = (leq_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(int_const_class)) {
+    int_const_class* ce = (int_const_class*) e;
+    check(ce);
+  } else if (typeid(*e) == typeid(bool_const_class)) {
+    bool_const_class* ce = (bool_const_class*) e;
+  } else if (typeid(*e) == typeid(string_const_class)) {
+    string_const_class* ce = (string_const_class*) e;
+    check(ce);
+  }
+}
+
+void TypeChecker::check(isvoid_class*) {
+}
+
+void TypeChecker::check(new__class*) {
+}
+
+void TypeChecker::check(no_expr_class*) {
+}
+
+void TypeChecker::check(object_class*) {
+}
+
+void TypeChecker::check(comp_class*) {
+}
+
+void TypeChecker::check(branch_class*) {
+}
+
+void TypeChecker::check(assign_class*) {
+}
+
+void TypeChecker::check(static_dispatch_class*) {
+}
+
+void TypeChecker::check(dispatch_class*) {
+}
+
+void TypeChecker::check(cond_class*) {
+}
+
+void TypeChecker::check(loop_class*) {
+}
+
+void TypeChecker::check(typcase_class*) {
+}
+
+void TypeChecker::check(block_class*) {
+}
+
+void TypeChecker::check(let_class*) {
+}
+
+void TypeChecker::check(plus_class*) {
+}
+
+void TypeChecker::check(sub_class*) {
+}
+
+void TypeChecker::check(mul_class*) {
+}
+
+void TypeChecker::check(divide_class*) {
+}
+
+void TypeChecker::check(neg_class*) {
+}
+
+void TypeChecker::check(lt_class*) {
+}
+
+void TypeChecker::check(eq_class*) {
+}
+
+void TypeChecker::check(leq_class*) {
+}
+
+void TypeChecker::check(int_const_class*) {
+}
+
+void TypeChecker::check(bool_const_class*) {
+}
+
+void TypeChecker::check(string_const_class*) {
+}
+
 
