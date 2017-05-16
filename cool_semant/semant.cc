@@ -518,6 +518,8 @@ ostream& TypeChecker::semant_error(tree_node *t) {
 }
 
 Symbol ClassTable::least_upper_bound(Symbol ca, Symbol cb, Symbol c) {
+  if (ca == NULL) return cb;
+  if (cb == NULL) return ca;
   if (ca == cb) return ca; // cover both ca and cb are SELF_TYPE
   if (ca == SELF_TYPE) ca = c; // current class
   if (cb == SELF_TYPE) cb = c; // current class
@@ -554,6 +556,7 @@ void TypeChecker::check(class__class* cls) {
   enterscope();
   current_class = cls;
   Features features = cls->get_features();
+  // first pass to set up scope for all attributes in case they are used in methods
   for(int i = features->first(); features->more(i); i = features->next(i)) {
     Feature f = (Feature) features->nth(i);
     if (f->is_attribute()) {
@@ -563,7 +566,12 @@ void TypeChecker::check(class__class* cls) {
         addid(a->get_name(), a);
       }
       check(a);
-    } else {
+    }
+  }
+  // second pass to check all methods
+  for(int i = features->first(); features->more(i); i = features->next(i)) {
+    Feature f = (Feature) features->nth(i);
+    if (f->is_method()) {
       method_class* m = (method_class*) f;
       check(m);
     }
