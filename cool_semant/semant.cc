@@ -511,8 +511,28 @@ ostream& TypeChecker::semant_error(tree_node *t) {
   }
 }
 
-Symbol TypeChecker::least_upper_bound(Symbol ca, Symbol cb) {
-  return Object;
+Symbol ClassTable::least_upper_bound(Symbol ca, Symbol cb, Symbol c) {
+  if (ca == cb) return ca; // cover both ca and cb are SELF_TYPE
+  if (ca == SELF_TYPE) ca = c; // current class
+  if (cb == SELF_TYPE) cb = c; // current class
+
+  Symbol lub = Object;
+  bool is_lub = true;
+  while (is_lub) {
+    std::set<Symbol>::iterator it;
+    std::set<Symbol> children = inheritance_graph[lub];
+    is_lub = false;
+
+    for (it = children.begin(); it != children.end(); it++) {
+      if (check_child_class(*it, ca) && check_child_class(*it, cb)) {
+        is_lub = true;
+        lub = *it;
+        break;
+      }
+    }
+  }
+
+  return lub;
 }
 void TypeChecker::check(program_class* p) {
   enterscope();
@@ -941,9 +961,11 @@ void TypeChecker::check(typcase_class* e) {
   }
 
   std::set<Symbol> class_set;
+  Symbol type = NULL;
   for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
     branch_class* b = (branch_class*) cases->nth(i);
     check(b);
+
     if (class_set.count(b->get_type_decl())) {
       semant_error(e) << "Branch classes " << b->get_type_decl()
         << " have duplicates." << endl;
@@ -951,7 +973,12 @@ void TypeChecker::check(typcase_class* e) {
     } else {
       class_set.insert(b->get_type_decl());
     }
+
+    Symbol current_type = b->get_expr()->get_type();
+    type = class_table->least_upper_bound(type, current_type, current_class->get_name());
   }
+
+  e->set_type(type);
 }
 
 void TypeChecker::check(block_class* e) {
