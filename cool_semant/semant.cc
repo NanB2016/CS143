@@ -718,6 +718,7 @@ void TypeChecker::check(Expression_class* e) {
     check(ce);
   } else if (typeid(*e) == typeid(bool_const_class)) {
     bool_const_class* ce = (bool_const_class*) e;
+    check(ce);
   } else if (typeid(*e) == typeid(string_const_class)) {
     string_const_class* ce = (string_const_class*) e;
     check(ce);
