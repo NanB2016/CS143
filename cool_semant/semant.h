@@ -50,6 +50,8 @@ public:
   ostream& semant_error(Symbol filename, tree_node *t);
   bool check_child_class(Symbol parent, Symbol child);
   bool check_class_exists(Symbol c);
+  bool has_method(Symbol c, Symbol m);
+  method_class* get_method(Symbol c, Symbol m) { return class_method_map[c][m]; }
 };
 
 class TypeChecker {
@@ -65,6 +67,7 @@ private:
   void exitscope() { symbol_table.exitscope(); }
   ostream& semant_error(tree_node *t);
   void arithmetic_check(Expression e, Expression e1, Expression e2);
+  bool check_actuals(Expression e, method_class* method, Expressions actuals);
 
 public:
   TypeChecker(ClassTable* c) : class_table(c), current_class(NULL) {};

@@ -431,6 +431,12 @@ bool ClassTable::check_class_exists(Symbol c) {
   return c == SELF_TYPE || class_info.count(c);
 }
 
+bool ClassTable::has_method(Symbol c, Symbol m) {
+  // class doesn't exist
+  if (!class_method_map.count(c)) return false;
+  return class_method_map[c].count(m); 
+}
+
 ////////////////////////////////////////////////////////////////////
 //
 // semant_error is an overloaded function for reporting errors
@@ -524,7 +530,7 @@ void TypeChecker::check(class__class* cls) {
     if (f->is_attribute()) {
       attr_class* a = (attr_class*) f;
       tree_node* n = probe(a->get_name());
-      if (n == NULL || typeid(*n) != typeid(attr_class)) {
+      if (n == NULL) { // TODO conflict with other classes?
         addid(a->get_name(), a);
       }
       check(a);
@@ -717,9 +723,118 @@ void TypeChecker::check(branch_class* e) {
 }
 
 void TypeChecker::check(assign_class* e) {
+  check(e->get_expr());
+  Symbol name = e->get_name();
+  //check name
+  if (name == self) {
+    semant_error(e) << "Cannot assign to self." << endl;
+    e->set_type(Object);
+    return;
+  }
+  tree_node* node = lookup(name);
+  if (!node) {
+    semant_error(e) << "Cannot find the assigned name in the current scope: "
+      << name << endl;
+    e->set_type(Object);
+    return;
+  }
+
+  // type matching
+  Symbol expr_type = e->get_expr()->get_type();
+  if (expr_type == SELF_TYPE) expr_type = current_class->get_name();
+  Symbol decl_type = NULL;
+  if (typeid(*node) == typeid(attr_class)) {
+    decl_type = ((attr_class*) node)->get_type_decl();
+  } else if (typeid(*node) == typeid(formal_class)) {
+    decl_type = ((formal_class*) node)->get_type_decl();
+  } else if (typeid(*node) == typeid(branch_class)) {
+    decl_type = ((branch_class*) node)->get_type_decl();
+  } else if (typeid(*node) == typeid(let_class)) {
+    decl_type = ((let_class*) node)->get_type_decl();
+  }
+  if (decl_type == SELF_TYPE) decl_type = current_class->get_name();
+  if (!class_table->check_child_class(decl_type, expr_type)) {
+    semant_error(e) << "Assigned value's type " << decl_type
+      << " doesn't match expression type " << expr_type << endl;
+    e->set_type(Object);
+    return;
+  }
+
+  e->set_type(expr_type); //TODO SELF_TYPE??
 }
 
 void TypeChecker::check(static_dispatch_class* e) {
+  check(e->get_expr());
+  Expressions actuals = e->get_actual();
+  for(int i = actuals->first(); actuals->more(i); i = actuals->next(i) ){
+    Expression actual = actuals->nth(i);
+    check(actual);
+  }
+
+  // check the type of the call function is well defined
+  Symbol type_name = e->get_type_name();
+  Symbol expr_type = e->get_expr()->get_type();
+  if (type_name == SELF_TYPE) type_name = current_class->get_name();
+  if (expr_type == SELF_TYPE) expr_type = current_class->get_name();
+
+  if (!class_table->check_class_exists(type_name)) {
+    semant_error(e) << "static dispatch class doesn't exist." << endl;
+    e->set_type(Object);
+    return;
+  }
+  if (!class_table->has_method(type_name, e->get_name())) {
+    semant_error(e) << "dispatch method doesn't exist for the class. " << endl;
+    e->set_type(Object);
+    return;
+  }
+  if (!class_table->check_child_class(type_name, expr_type)) {
+    semant_error(e) << "the caller expression's type doesn't match static type" << endl;
+    e->set_type(Object);
+    return;
+  }
+
+  // check actuals are well typed
+  method_class* method = class_table->get_method(type_name, e->get_name());
+  if (!check_actuals(e, method, actuals)) {
+    e->set_type(Object);
+    return;
+  }
+
+  // set return type to tree node type
+  Symbol return_type = method->get_return_type();
+  if (return_type == SELF_TYPE) {
+    return_type = current_class->get_name();
+  }
+  e->set_type(return_type);
+}
+
+bool TypeChecker::check_actuals(
+  Expression e, 
+  method_class* method, 
+  Expressions actuals
+) {
+  Formals formals = method->get_formals();
+  if (formals->len() != actuals->len()) {
+    semant_error(e) << "The number of caller actuals doesn't match method definition. "
+      <<endl;
+    return false;
+  }
+  for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
+    formal_class* f = (formal_class*) formals->nth(i);
+    Expression a = actuals->nth(i);
+    
+    Symbol formal_type = f->get_type_decl();
+    Symbol actual_type = a->get_type();
+    if (formal_type == SELF_TYPE) formal_type = current_class->get_name();
+    if (actual_type == SELF_TYPE) actual_type = current_class->get_name();
+    if (!class_table->check_child_class(formal_type, actual_type)) {
+      semant_error(e) << "declaration type " << formal_type
+        << " doesn't match actual type " << actual_type
+        << " in method " << method->get_name() << "." << endl;
+      return false;
+    }
+  }
+  return true;
 }
 
 void TypeChecker::check(dispatch_class* e) {
@@ -741,6 +856,7 @@ void TypeChecker::check(typcase_class* e) {
 }
 
 void TypeChecker::check(block_class* e) {
+  enterscope();
   Expressions body = e->get_body();
   Symbol type = NULL;
 
@@ -751,6 +867,7 @@ void TypeChecker::check(block_class* e) {
   }
 
   e->set_type(type);
+  exitscope();
 }
 
 void TypeChecker::check(let_class* e) {

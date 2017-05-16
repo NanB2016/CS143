@@ -275,6 +275,7 @@ public:
    }
    Case copy_Case();
    void dump(ostream& stream, int n);
+   Symbol get_type_decl() { return type_decl; }
 
 #ifdef Case_SHARED_EXTRAS
    Case_SHARED_EXTRAS
@@ -297,6 +298,8 @@ public:
    }
    Expression copy_Expression();
    void dump(ostream& stream, int n);
+   Symbol get_name() { return name; }
+   Expression get_expr() { return expr; }
 
 #ifdef Expression_SHARED_EXTRAS
    Expression_SHARED_EXTRAS
@@ -323,6 +326,10 @@ public:
    }
    Expression copy_Expression();
    void dump(ostream& stream, int n);
+   Expression get_expr() { return expr; }
+   Expressions get_actual() { return actual; }
+   Symbol get_type_name() { return type_name; }
+   Symbol get_name() { return name; }
 
 #ifdef Expression_SHARED_EXTRAS
    Expression_SHARED_EXTRAS
@@ -463,6 +470,7 @@ public:
    }
    Expression copy_Expression();
    void dump(ostream& stream, int n);
+   Symbol get_type_decl() { return type_decl; }
 
 #ifdef Expression_SHARED_EXTRAS
    Expression_SHARED_EXTRAS
