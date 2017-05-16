@@ -543,7 +543,6 @@ void TypeChecker::check(class__class* cls) {
 }
 
 void TypeChecker::check(attr_class* a) {
-  enterscope();
   if (a->get_name() == self) {
     semant_error(a) << "attribute cannot be self type." << endl;
   }
@@ -572,11 +571,9 @@ void TypeChecker::check(attr_class* a) {
       << " declaratino type " << decl_type 
       << " doesn't match initialization type " << init_type << endl;
   }
-  exitscope();
 }
 
 void TypeChecker::check(method_class* m) {
-  enterscope();
   Formals formals = m->get_formals();
   for(int i =formals->first(); formals->more(i); i=formals->next(i)) {
     formal_class* f = (formal_class*)formals->nth(i);
@@ -597,7 +594,6 @@ void TypeChecker::check(method_class* m) {
   if (!class_table->check_child_class(return_type_method, return_type_expr)) {
     semant_error(m) << "method return types don't match." << endl;
   }
-  exitscope();
 }
 
 void TypeChecker::check(formal_class* f) {
@@ -698,9 +694,14 @@ void TypeChecker::check(isvoid_class* e) {
 }
 
 void TypeChecker::check(new__class* e) {
-  
-  e->set_type(e->get_type_name());
-  
+  Symbol type_name = e->get_type_name();
+  if (!class_table->check_class_exists(type_name)) {
+    semant_error(e) << "new: class " << type_name
+      << " is not registered." << endl;
+    e->set_type(Object);
+    return;
+  }
+  e->set_type(type_name); 
 }
 
 void TypeChecker::check(no_expr_class* e) {
@@ -708,6 +709,31 @@ void TypeChecker::check(no_expr_class* e) {
 }
 
 void TypeChecker::check(object_class* e) {
+  if (e->get_name() == self) {
+    e->set_type(SELF_TYPE);
+    return;
+  }
+  tree_node* node = lookup(e->get_name());
+  if (!node) {
+    semant_error(e) << "identifier is not defined" << endl;
+    e->set_type(Object);
+    return;
+  }
+  e->set_type(get_tree_node_type(node));
+}
+
+Symbol TypeChecker::get_tree_node_type(tree_node* node) {
+  Symbol type = NULL;
+  if (typeid(*node) == typeid(attr_class)) {
+    type = ((attr_class*) node)->get_type_decl();
+  } else if (typeid(*node) == typeid(formal_class)) {
+    type = ((formal_class*) node)->get_type_decl();
+  } else if (typeid(*node) == typeid(branch_class)) {
+    type = ((branch_class*) node)->get_type_decl();
+  } else if (typeid(*node) == typeid(let_class)) {
+    type = ((let_class*) node)->get_type_decl();
+  }
+  return type;
 }
 
 void TypeChecker::check(comp_class* e) {
@@ -716,6 +742,7 @@ void TypeChecker::check(comp_class* e) {
     e->set_type(Bool);
   }else{
     semant_error(e) << "comp subexpression type is not Bool!" << endl;
+    e->set_type(Object);
   }
 }
 
@@ -742,16 +769,7 @@ void TypeChecker::check(assign_class* e) {
   // type matching
   Symbol expr_type = e->get_expr()->get_type();
   if (expr_type == SELF_TYPE) expr_type = current_class->get_name();
-  Symbol decl_type = NULL;
-  if (typeid(*node) == typeid(attr_class)) {
-    decl_type = ((attr_class*) node)->get_type_decl();
-  } else if (typeid(*node) == typeid(formal_class)) {
-    decl_type = ((formal_class*) node)->get_type_decl();
-  } else if (typeid(*node) == typeid(branch_class)) {
-    decl_type = ((branch_class*) node)->get_type_decl();
-  } else if (typeid(*node) == typeid(let_class)) {
-    decl_type = ((let_class*) node)->get_type_decl();
-  }
+  Symbol decl_type = get_tree_node_type(node);
   if (decl_type == SELF_TYPE) decl_type = current_class->get_name();
   if (!class_table->check_child_class(decl_type, expr_type)) {
     semant_error(e) << "Assigned value's type " << decl_type
@@ -856,7 +874,6 @@ void TypeChecker::check(typcase_class* e) {
 }
 
 void TypeChecker::check(block_class* e) {
-  enterscope();
   Expressions body = e->get_body();
   Symbol type = NULL;
 
@@ -867,7 +884,6 @@ void TypeChecker::check(block_class* e) {
   }
 
   e->set_type(type);
-  exitscope();
 }
 
 void TypeChecker::check(let_class* e) {

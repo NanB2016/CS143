@@ -68,6 +68,7 @@ private:
   ostream& semant_error(tree_node *t);
   void arithmetic_check(Expression e, Expression e1, Expression e2);
   bool check_actuals(Expression e, method_class* method, Expressions actuals);
+  Symbol get_tree_node_type(tree_node* node);
 
 public:
   TypeChecker(ClassTable* c) : class_table(c), current_class(NULL) {};
