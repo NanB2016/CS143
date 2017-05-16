@@ -69,6 +69,7 @@ private:
   void arithmetic_check(Expression e, Expression e1, Expression e2);
   bool check_actuals(Expression e, method_class* method, Expressions actuals);
   Symbol get_tree_node_type(tree_node* node);
+  Symbol least_upper_bound(Symbol ca, Symbol cb);
 
 public:
   TypeChecker(ClassTable* c) : class_table(c), current_class(NULL) {};

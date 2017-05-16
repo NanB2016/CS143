@@ -511,10 +511,13 @@ ostream& TypeChecker::semant_error(tree_node *t) {
   }
 }
 
+Symbol TypeChecker::least_upper_bound(Symbol ca, Symbol cb) {
+  return Object;
+}
 void TypeChecker::check(program_class* p) {
   enterscope();
   Classes classes = p->get_classes();
-  for(int i =classes->first(); classes->more(i); i=classes->next(i)) {
+  for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
     class__class* cls = (class__class*)classes->nth(i);
     check(cls);
   }
@@ -574,10 +577,18 @@ void TypeChecker::check(attr_class* a) {
 }
 
 void TypeChecker::check(method_class* m) {
+  enterscope();
   Formals formals = m->get_formals();
-  for(int i =formals->first(); formals->more(i); i=formals->next(i)) {
+  for(int i = formals->first(); formals->more(i); i = formals->next(i)) {
     formal_class* f = (formal_class*)formals->nth(i);
     check(f);
+    tree_node* node = probe(f->get_name());
+    if (node) {
+      semant_error(m) << "Formal " << f->get_name()
+        << " is defined multiple time" << endl;
+    } else {
+      addid(f->get_name(), f);
+    }
   }
 
   check(m->get_expr());
@@ -594,6 +605,7 @@ void TypeChecker::check(method_class* m) {
   if (!class_table->check_child_class(return_type_method, return_type_expr)) {
     semant_error(m) << "method return types don't match." << endl;
   }
+  exitscope();
 }
 
 void TypeChecker::check(formal_class* f) {
@@ -726,8 +738,6 @@ Symbol TypeChecker::get_tree_node_type(tree_node* node) {
     type = ((attr_class*) node)->get_type_decl();
   } else if (typeid(*node) == typeid(formal_class)) {
     type = ((formal_class*) node)->get_type_decl();
-  } else if (typeid(*node) == typeid(branch_class)) {
-    type = ((branch_class*) node)->get_type_decl();
   } else if (typeid(*node) == typeid(let_class)) {
     type = ((let_class*) node)->get_type_decl();
   }
@@ -925,6 +935,23 @@ void TypeChecker::check(loop_class* e) {
 void TypeChecker::check(typcase_class* e) {
   check(e->get_expr());
   Cases cases = e->get_cases();
+  if (cases->len() == 0) {
+    e->set_type(Object);
+    return;
+  }
+
+  std::set<Symbol> class_set;
+  for (int i = cases->first(); cases->more(i); i = cases->next(i)) {
+    branch_class* b = (branch_class*) cases->nth(i);
+    check(b);
+    if (class_set.count(b->get_type_decl())) {
+      semant_error(e) << "Branch classes " << b->get_type_decl()
+        << " have duplicates." << endl;
+      return;
+    } else {
+      class_set.insert(b->get_type_decl());
+    }
+  }
 }
 
 void TypeChecker::check(block_class* e) {
