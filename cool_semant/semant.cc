@@ -597,7 +597,6 @@ void TypeChecker::check(method_class* m) {
 }
 
 void TypeChecker::check(formal_class* f) {
-  enterscope();
   if (!class_table->check_class_exists(f->get_type_decl())) {
     semant_error(f) << "Formal " << f->get_name() 
       <<" deslaration class " << f->get_type_decl()
@@ -607,7 +606,6 @@ void TypeChecker::check(formal_class* f) {
     semant_error(f) << "Formal " << f->get_name() 
       << " type cannot be SELF_TYPE." << endl;
   }
-  exitscope();
 }
 
 void TypeChecker::check(Expression_class* e) {
@@ -747,6 +745,17 @@ void TypeChecker::check(comp_class* e) {
 }
 
 void TypeChecker::check(branch_class* e) {
+  check(e->get_expr());
+
+  if (!class_table->check_class_exists(e->get_type_decl())) {
+    semant_error(e) << "case branch: class doesn't exists." <<endl;
+  }
+  if (e->get_name() == self) {
+    semant_error(e) << "case branch: identifier cannot be self" << endl;
+  }
+  if (e->get_type_decl() == SELF_TYPE) {
+    semant_error(e) << "case branch: class cannot be SELF_TYPE." << endl;
+  }
 }
 
 void TypeChecker::check(assign_class* e) {
@@ -783,12 +792,6 @@ void TypeChecker::check(assign_class* e) {
 
 void TypeChecker::check(static_dispatch_class* e) {
   check(e->get_expr());
-  Expressions actuals = e->get_actual();
-  for(int i = actuals->first(); actuals->more(i); i = actuals->next(i) ){
-    Expression actual = actuals->nth(i);
-    check(actual);
-  }
-
   // check the type of the call function is well defined
   Symbol type_name = e->get_type_name();
   Symbol expr_type = e->get_expr()->get_type();
@@ -813,7 +816,7 @@ void TypeChecker::check(static_dispatch_class* e) {
 
   // check actuals are well typed
   method_class* method = class_table->get_method(type_name, e->get_name());
-  if (!check_actuals(e, method, actuals)) {
+  if (!check_method(e, method, e->get_actual())) {
     e->set_type(Object);
     return;
   }
@@ -826,7 +829,7 @@ void TypeChecker::check(static_dispatch_class* e) {
   e->set_type(return_type);
 }
 
-bool TypeChecker::check_actuals(
+bool TypeChecker::check_method(
   Expression e, 
   method_class* method, 
   Expressions actuals
@@ -840,6 +843,7 @@ bool TypeChecker::check_actuals(
   for (int i = formals->first(); formals->more(i); i = formals->next(i)) {
     formal_class* f = (formal_class*) formals->nth(i);
     Expression a = actuals->nth(i);
+    check(a);
     
     Symbol formal_type = f->get_type_decl();
     Symbol actual_type = a->get_type();
@@ -871,6 +875,8 @@ void TypeChecker::check(loop_class* e) {
 }
 
 void TypeChecker::check(typcase_class* e) {
+  check(e->get_expr());
+  Cases cases = e->get_cases();
 }
 
 void TypeChecker::check(block_class* e) {
