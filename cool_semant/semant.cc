@@ -865,7 +865,6 @@ void TypeChecker::check(static_dispatch_class* e) {
 
   // check actuals are well typed
   method_class* method = class_table->get_method(type_name, e->get_name());
-  check(method);
   if (!check_actuals(e, method, e->get_actual())) {
     e->set_type(Object);
     return;
@@ -934,7 +933,6 @@ void TypeChecker::check(dispatch_class* e) {
 
   // check actuals are well typed
   method_class* method = class_table->get_method(expr_type, e->get_name());
-  check(method);
   if (!check_actuals(e, method, e->get_actual())) {
     e->set_type(Object);
     return;
