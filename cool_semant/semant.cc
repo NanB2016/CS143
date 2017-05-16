@@ -235,22 +235,22 @@ void ClassTable::install_program_classes(Classes classes) {
 
 
   if (!has_main_class) {
-    semant_error()<<"Main class is not defined"<<endl;
+    semant_error() << "Main class is not defined" << endl;
   }
   
   // second pass to check and build inheritance map
   for (int i = classes->first(); classes->more(i); i = classes->next(i)) {
     class__class* c = (class__class*) classes->nth(i);
     Symbol parent = c->get_parent();
-
-    if (parent==Int || parent==Bool || parent==Str|| parent==SELF_TYPE) {
-      semant_error(c->get_filename(), c)
-      << "parent cannot be basic classes or SELF_TYPE!" << endl;
-    }
    
-    if (class_info.find(parent)==class_info.end()) {
+    if (class_info.find(parent) == class_info.end()) {
       semant_error(c->get_filename(), c)
-      << "parent class does not exist!"<< endl;
+        << "parent class does not exist!" << endl;
+    }
+
+    if (parent == Int || parent == Bool || parent == Str || parent == SELF_TYPE) {
+      semant_error(c->get_filename(), c)
+        << "parent cannot be basic classes or SELF_TYPE!" << endl;
     }
 
     IG(parent, c->get_name());
@@ -397,8 +397,14 @@ void ClassTable::install_class_features() {
     }
 
     // inherit all parent class features
-    class_method_map[c].insert(class_method_map[cls->get_parent()].begin(), class_method_map[cls->get_parent()].end());
-    class_attr_map[c].insert(class_attr_map[cls->get_parent()].begin(), class_attr_map[cls->get_parent()].end());
+    class_method_map[c].insert(
+      class_method_map[cls->get_parent()].begin(),
+      class_method_map[cls->get_parent()].end()
+    );
+    class_attr_map[c].insert(
+      class_attr_map[cls->get_parent()].begin(), 
+      class_attr_map[cls->get_parent()].end()
+    );
     
     // enqueue all child classes
     std::set<Symbol> child_classes = inheritance_graph[c];
