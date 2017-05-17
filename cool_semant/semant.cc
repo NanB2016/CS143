@@ -272,6 +272,7 @@ void ClassTable::check_cycle(){
 
   if (cycle_found){
     semant_error() << "cycle exists in inheritance graph!" << endl;
+    abort();
   }
 }
 
@@ -426,6 +427,11 @@ void ClassTable::abort(){
 }
 
 bool ClassTable::check_child_class(Symbol parent, Symbol child) {
+  if (cycle_found) {
+    semant_error() << "Cannot check class parent-child relations when "
+      << "inheritance graph has cycles" << endl;
+    return false;
+  }
   while (parent != child && child != Object) {
     if (!class_info.count(child)) break;
     child = class_info[child]->get_parent();

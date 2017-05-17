@@ -19,6 +19,7 @@ class C inherits A{
 
 class B inherits C{
 };
+
 CLASS B{
 };
 
