@@ -1,0 +1,421 @@
+make[1]: Entering directory `/home/osboxes/CS143/cool_semant'
+make[1]: `semant' is up to date.
+make[1]: Leaving directory `/home/osboxes/CS143/cool_semant'
+#1
+_program
+  #1
+  _class
+    C
+    IO
+    "good.cl"
+    (
+    #2
+    _attr
+      b
+      Bool
+      #2
+      _no_expr
+      : _no_type
+    #3
+    _method
+      init
+      #3
+      _formal
+        x
+        Int
+      #3
+      _formal
+        y
+        Bool
+      C
+      #4
+      _block
+        #5
+        _assign
+          a
+          #5
+          _object
+            x
+          : Int
+        : Int
+        #6
+        _assign
+          b
+          #6
+          _object
+            y
+          : Bool
+        : Bool
+        #7
+        _object
+          self
+        : SELF_TYPE
+      : SELF_TYPE
+    #10
+    _attr
+      a
+      Int
+      #10
+      _no_expr
+      : _no_type
+    #11
+    _method
+      h
+      Object
+      #12
+      _assign
+        b
+        #12
+        _bool
+          1
+        : Bool
+      : Bool
+    #14
+    _method
+      g
+      #14
+      _formal
+        x
+        Int
+      Int
+      #15
+      _block
+        #16
+        _plus
+          #16
+          _object
+            x
+          : Int
+          #16
+          _mul
+            #16
+            _int
+              1
+            : Int
+            #16
+            _object
+              x
+            : Int
+          : Int
+        : Int
+      : Int
+    )
+  #21
+  _class
+    D
+    C
+    "good.cl"
+    (
+    #22
+    _method
+      f
+      Object
+      #23
+      _block
+        #24
+        _dispatch
+          #24
+          _object
+            self
+          : SELF_TYPE
+          out_string
+          (
+          #24
+          _string
+            "test print"
+          : String
+          )
+        : SELF_TYPE
+        #25
+        _static_dispatch
+          #25
+          _object
+            self
+          : SELF_TYPE
+          C
+          h
+          (
+          )
+        : Object
+        #26
+        _typcase
+          #26
+          _object
+            a
+          : Int
+          #27
+          _branch
+            y
+            Int
+            #27
+            _mul
+              #27
+              _object
+                a
+              : Int
+              #27
+              _object
+                a
+              : Int
+            : Int
+          #28
+          _branch
+            z
+            IO
+            #28
+            _plus
+              #28
+              _object
+                a
+              : Int
+              #28
+              _object
+                a
+              : Int
+            : Int
+        : Int
+        #30
+        _let
+          x
+          Int
+          #30
+          _int
+            2
+          : Int
+          #30
+          _block
+            #31
+            _mul
+              #31
+              _int
+                1
+              : Int
+              #31
+              _object
+                x
+              : Int
+            : Int
+          : Int
+        : Int
+        #33
+        _cond
+          #33
+          _eq
+            #33
+            _bool
+              1
+            : Bool
+            #33
+            _bool
+              0
+            : Bool
+          : Bool
+          #33
+          _dispatch
+            #33
+            _object
+              self
+            : SELF_TYPE
+            h
+            (
+            )
+          : Object
+          #33
+          _int
+            0
+          : Int
+        : Object
+        #34
+        _cond
+          #34
+          _eq
+            #34
+            _int
+              1
+            : Int
+            #34
+            _int
+              1
+            : Int
+          : Bool
+          #34
+          _dispatch
+            #34
+            _object
+              self
+            : SELF_TYPE
+            h
+            (
+            )
+          : Object
+          #34
+          _int
+            0
+          : Int
+        : Object
+        #35
+        _cond
+          #35
+          _eq
+            #35
+            _string
+              "a"
+            : String
+            #35
+            _string
+              "a"
+            : String
+          : Bool
+          #35
+          _dispatch
+            #35
+            _object
+              self
+            : SELF_TYPE
+            h
+            (
+            )
+          : Object
+          #35
+          _int
+            0
+          : Int
+        : Object
+        #36
+        _cond
+          #36
+          _eq
+            #36
+            _string
+              "a"
+            : String
+            #36
+            _new
+              C
+            : C
+          : Bool
+          #36
+          _dispatch
+            #36
+            _object
+              self
+            : SELF_TYPE
+            h
+            (
+            )
+          : Object
+          #36
+          _int
+            0
+          : Int
+        : Object
+        #37
+        _plus
+          #37
+          _dispatch
+            #37
+            _object
+              self
+            : SELF_TYPE
+            g
+            (
+            #37
+            _int
+              2
+            : Int
+            )
+          : Int
+          #37
+          _dispatch
+            #37
+            _object
+              self
+            : SELF_TYPE
+            g
+            (
+            #37
+            _int
+              1
+            : Int
+            )
+          : Int
+        : Int
+      : Int
+    #40
+    _method
+      h
+      Object
+      #41
+      _block
+        #42
+        _assign
+          b
+          #42
+          _bool
+            0
+          : Bool
+        : Bool
+        #43
+        _loop
+          #43
+          _object
+            b
+          : Bool
+          #43
+          _block
+            #44
+            _assign
+              a
+              #44
+              _plus
+                #44
+                _object
+                  a
+                : Int
+                #44
+                _int
+                  1
+                : Int
+              : Int
+            : Int
+            #45
+            _assign
+              b
+              #45
+              _bool
+                0
+              : Bool
+            : Bool
+          : Bool
+        : Object
+      : Object
+    )
+  #51
+  _class
+    Main
+    Object
+    "good.cl"
+    (
+    #52
+    _method
+      main
+      C
+      #53
+      _dispatch
+        #53
+        _new
+          C
+        : C
+        init
+        (
+        #53
+        _int
+          1
+        : Int
+        #53
+        _bool
+          1
+        : Bool
+        )
+      : C
+    )

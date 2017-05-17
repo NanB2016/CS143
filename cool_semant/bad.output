@@ -1,0 +1,12 @@
+make[1]: Entering directory `/home/osboxes/CS143/cool_semant'
+make[1]: `semant' is up to date.
+make[1]: Leaving directory `/home/osboxes/CS143/cool_semant'
+bad.cl:28: The class has already been defined: D
+bad.cl:25: parent class does not exist!
+bad.cl:51: Attributes definted in parent class cannot be redefined: a
+bad.cl:52: Attributes definted in parent class cannot be redefined: b
+bad.cl:54: Inherited method has different return type than parent definition: c
+bad.cl:54: Inherited method has different number of formals than parent definition: c
+bad.cl:60: Inherited method has different formal type: c
+bad.cl:66: method doesn't have a valid return type.
+Abort compilation
