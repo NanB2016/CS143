@@ -32,7 +32,6 @@ private:
   std::map<Symbol, std::set<Symbol> > inheritance_graph; 
   std::map<Symbol, class__class*> class_info;
   std::map<Symbol, std::map<Symbol, method_class*> > class_method_map;
-  std::map<Symbol, std::map<Symbol, attr_class*> > class_attr_map;
 
   void install_basic_classes();
   void install_program_classes(Classes classes);
@@ -43,6 +42,7 @@ private:
   void verify_method_formals(class__class*, method_class*);
 
 public:
+  std::map<Symbol, std::map<Symbol, attr_class*> > class_attr_map;
   ClassTable(Classes);
   int errors() { return semant_errors; }
   ostream& semant_error();

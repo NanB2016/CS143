@@ -427,7 +427,7 @@ void ClassTable::abort(){
 
 bool ClassTable::check_child_class(Symbol parent, Symbol child) {
   while (parent != child && child != Object) {
-    if (class_info.count(child)) break;
+    if (!class_info.count(child)) break;
     child = class_info[child]->get_parent();
   }
   return parent == child;
@@ -543,13 +543,11 @@ Symbol ClassTable::least_upper_bound(Symbol ca, Symbol cb, Symbol c) {
   return lub;
 }
 void TypeChecker::check(program_class* p) {
-  enterscope();
   Classes classes = p->get_classes();
   for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
     class__class* cls = (class__class*)classes->nth(i);
     check(cls);
   }
-  exitscope();
 }
 
 void TypeChecker::check(class__class* cls) {
@@ -557,18 +555,25 @@ void TypeChecker::check(class__class* cls) {
   current_class = cls;
   Features features = cls->get_features();
   // first pass to set up scope for all attributes in case they are used in methods
+  std::map<Symbol, attr_class*>::iterator it;
+  std::map<Symbol, attr_class*> am =
+    class_table->class_attr_map[cls->get_name()];
+  for (it = am.begin(); it != am.end(); ++it) {
+    Symbol attr_name = it->second->get_name();
+    tree_node* n = probe(attr_name);
+    if (n == NULL) { // TODO conflict with other classes?
+      addid(attr_name, it->second);
+    }
+  }
+  // third pass to check all attributes
   for(int i = features->first(); features->more(i); i = features->next(i)) {
     Feature f = (Feature) features->nth(i);
     if (f->is_attribute()) {
       attr_class* a = (attr_class*) f;
-      tree_node* n = probe(a->get_name());
-      if (n == NULL) { // TODO conflict with other classes?
-        addid(a->get_name(), a);
-      }
       check(a);
     }
   }
-  // second pass to check all methods
+  // third pass to check all methods
   for(int i = features->first(); features->more(i); i = features->next(i)) {
     Feature f = (Feature) features->nth(i);
     if (f->is_method()) {
@@ -605,7 +610,7 @@ void TypeChecker::check(attr_class* a) {
   }
   if (!class_table->check_child_class(decl_type, init_type)) {
     semant_error(a) << "attribute " << a->get_name()
-      << " declaratino type " << decl_type 
+      << " declaration type " << decl_type 
       << " doesn't match initialization type " << init_type << endl;
   }
 }
@@ -636,6 +641,8 @@ void TypeChecker::check(method_class* m) {
   if (return_type_expr == SELF_TYPE) {
     return_type_expr = current_class->get_name();
   }
+  //cout << return_type_method << endl;
+  //cout << return_type_expr << endl;
   if (!class_table->check_child_class(return_type_method, return_type_expr)) {
     semant_error(m) << "method return types don't match." << endl;
   }
@@ -760,7 +767,8 @@ void TypeChecker::check(object_class* e) {
   }
   tree_node* node = lookup(e->get_name());
   if (!node) {
-    semant_error(e) << "identifier is not defined" << endl;
+    semant_error(e) << "identifier " << e->get_name()
+      << " is not defined" << endl;
     e->set_type(Object);
     return;
   }
@@ -792,6 +800,7 @@ void TypeChecker::check(comp_class* e) {
 }
 
 void TypeChecker::check(branch_class* e) {
+  addid(e->get_name(), e);
   check(e->get_expr());
 
   if (!class_table->check_class_exists(e->get_type_decl())) {
@@ -849,6 +858,9 @@ void TypeChecker::check(static_dispatch_class* e) {
   // check the type of the call function is well defined
   Symbol type_name = e->get_type_name();
   Symbol expr_type = e->get_expr()->get_type();
+  if (expr_type == SELF_TYPE) {
+    expr_type = current_class->get_name();
+  }
 
   if (type_name == SELF_TYPE) {
     semant_error(e) << "static type T cannot be SELF_TYPE" << endl;
@@ -882,7 +894,7 @@ void TypeChecker::check(static_dispatch_class* e) {
   // set return type to tree node type
   Symbol return_type = method->get_return_type();
   if (return_type == SELF_TYPE) {
-    return_type = expr_type;
+    return_type = e->get_expr()->get_type();
   }
   e->set_type(return_type);
 }
@@ -908,8 +920,8 @@ bool TypeChecker::check_actuals(
       semant_error(e) << "formal cannot be SELF_TYPE!" << endl;
     }
     if (actual_type == SELF_TYPE) {
-      semant_error(e) << "actual cannot be SELF_TYPE!" << endl;
-      }
+      actual_type = current_class->get_name();
+    }
     if (!class_table->check_child_class(formal_type, actual_type)) {
       semant_error(e) << "declaration type " << formal_type
         << " doesn't match actual type " << actual_type
@@ -950,7 +962,7 @@ void TypeChecker::check(dispatch_class* e) {
   // set return type to tree node type
   Symbol return_type = method->get_return_type();
   if (return_type == SELF_TYPE) {
-    return_type = expr_type;
+    return_type = e->get_expr()->get_type();
   }
   e->set_type(return_type);
 }
@@ -988,6 +1000,7 @@ void TypeChecker::check(loop_class* e) {
 }
 
 void TypeChecker::check(typcase_class* e) {
+  enterscope();
   check(e->get_expr());
   Cases cases = e->get_cases();
   if (cases->len() == 0) {
@@ -1014,6 +1027,7 @@ void TypeChecker::check(typcase_class* e) {
   }
 
   e->set_type(type);
+  exitscope();
 }
 
 void TypeChecker::check(block_class* e) {
@@ -1030,31 +1044,33 @@ void TypeChecker::check(block_class* e) {
 }
 
 void TypeChecker::check(let_class* e) {
+  enterscope();
   Symbol type_decl = e->get_type_decl();
   Symbol identifier = e->get_identifier();
   Expression body = e->get_body();
   Expression init = e->get_init();
-
+  
+  addid(identifier, e);
+    
   if (type_decl == SELF_TYPE) type_decl = current_class->get_name();
   if (identifier == self){
     semant_error(e) << "let identifier cannot be self" << endl;
   }
-  
-  enterscope();
-  addid(identifier, e);
-  check(body);
-  exitscope();
 
   if (typeid(*init) != typeid(no_expr_class)) {
     check(init);
-    if (class_table->check_child_class(type_decl, init->get_type())){
-      e->set_type(body->get_type());
-    } else {
+    if (!class_table->check_child_class(type_decl, init->get_type())){
       semant_error(e) 
         << "let init and declared type are not compatible!" << endl;
       e->set_type(Object);
+      return;
     }
   }
+  
+  check(body);
+  
+  e->set_type(body->get_type());
+  exitscope();
 }
 
 
@@ -1114,11 +1130,16 @@ void TypeChecker::check(eq_class* e) {
   check(e->get_e2());
   Symbol type1 = e->get_e1()->get_type();
   Symbol type2 = e->get_e2()->get_type();
-  bool isBasic = type1 == Int || type1 == Str || type1 == Bool;
-  if (type1 == type2 && isBasic){
+  bool isBasic1 = type1 == Int || type1 == Str || type1 == Bool;
+  bool isBasic2 = type2 == Int || type2 == Str || type2 == Bool;
+  bool both_basic = isBasic1 && isBasic2 && (type1 == type2);
+  bool not_both_basic = !(isBasic1 && isBasic2);
+  
+  if (both_basic || not_both_basic) {
     e->set_type(Bool);
   }else{
     semant_error(e) << "Eq subexpression type is not correct" << endl;
+    e->set_type(Object);
   }
 }
 
