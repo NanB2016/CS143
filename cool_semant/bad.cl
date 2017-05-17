@@ -1,9 +1,3 @@
-class A inherits B{
-};
-
-class B inherits A{
-};
-
 
 class C {
 	a : Int;
@@ -27,3 +21,61 @@ Class Main {
 	 }
 	};
 };
+
+ClASS D inherits E{
+};
+
+class D {
+};
+
+Class AA{
+  a: Int<-0;
+  b: Bool;
+
+  c(c: Int): Int{
+  {
+  a <- c+1;
+  out_string("not defined");
+  if 1 = true then 1 else 0 fi;
+  }
+  };
+  
+  d(c: Int): Bool{
+  {
+  a<=c;
+  }
+};
+};
+
+Class BB inherits AA{
+  a: Bool;
+  b: Int;
+  
+  c(): Bool{
+  {
+a;
+  }
+};
+
+d(c: Bool): Bool{
+{
+c;
+}
+};
+
+e(): EEE{
+{
+true;
+}
+};
+};
+
+-- detect cycle
+-- comment out because semant will halt if there are cycles
+-- class A inherits B{
+-- };
+
+-- class B inherits A{
+-- };
+
+
