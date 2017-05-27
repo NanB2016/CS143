@@ -2083,6 +2083,16 @@ State 139
    41     | expr . '=' expr
    54 expr_let: OBJECTID ':' TYPEID IN expr .
 
+    LE   shift, and go to state 79
+    '<'  shift, and go to state 80
+    '='  shift, and go to state 81
+    '+'  shift, and go to state 82
+    '-'  shift, and go to state 83
+    '*'  shift, and go to state 84
+    '/'  shift, and go to state 85
+    '@'  shift, and go to state 86
+    '.'  shift, and go to state 87
+
     $default  reduce using rule 54 (expr_let)
 
 
@@ -2241,6 +2251,16 @@ State 150
    40     | expr . LE expr
    41     | expr . '=' expr
    55 expr_let: OBJECTID ':' TYPEID ASSIGN expr IN expr .
+
+    LE   shift, and go to state 79
+    '<'  shift, and go to state 80
+    '='  shift, and go to state 81
+    '+'  shift, and go to state 82
+    '-'  shift, and go to state 83
+    '*'  shift, and go to state 84
+    '/'  shift, and go to state 85
+    '@'  shift, and go to state 86
+    '.'  shift, and go to state 87
 
     $default  reduce using rule 55 (expr_let)
 

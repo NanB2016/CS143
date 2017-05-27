@@ -1,1 +1,10 @@
 user: nancybai
+
+I did not pay attention to the precedence of let expression over other operators causing a lot of errors in parsing let expressions. I put the following line above other precedence declarations because let expression should have the lowest precedence.  
+
+Here is the diff between my new and old cool.y
+150d149
+<     %right LET IN
+159a159
+>     %right LET IN
+

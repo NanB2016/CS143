@@ -147,6 +147,7 @@
     /* You will want to change the following line. */
     
     /* Precedence declarations go here. */
+    %right LET IN
     %right ASSIGN
     %left NOT
     %nonassoc LE '<' '='
@@ -156,7 +157,6 @@
     %left '~'
     %left '@'
     %left '.'
-    %right LET IN
     
     %%
     /* 
