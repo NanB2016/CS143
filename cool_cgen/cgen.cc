@@ -628,9 +628,11 @@ void CgenClassTable::code_constants()
 
 CgenClassTable::CgenClassTable(Classes classes, ostream& s) : nds(NULL) , str(s)
 {
+   // set tag in install_class()
    stringclasstag = 0 /* Change to your String class tag here */;
    intclasstag =    0 /* Change to your Int class tag here */;
    boolclasstag =   0 /* Change to your Bool class tag here */;
+   current_tag = 0;
 
    enterscope();
    if (cgen_debug) cout << "Building CgenClassTable" << endl;
@@ -778,6 +780,16 @@ void CgenClassTable::install_class(CgenNodeP nd)
       return;
     }
 
+  // set tag
+  if (name == Str) {
+    stringclasstag = current_tag;
+  } else if (name == Int) {
+    intclasstag = current_tag;
+  } else if (name == Bool) {
+    boolclasstag = current_tag;
+  }
+  nd->tag = current_tag;
+  current_tag++;
   // The class name is legal, so add it to the list of classes
   // and the symbol table.
   nds = new List<CgenNode>(nd,nds);

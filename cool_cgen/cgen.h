@@ -21,6 +21,7 @@ private:
    int stringclasstag;
    int intclasstag;
    int boolclasstag;
+   int current_tag;
 
 
 // The following methods emit code for
@@ -61,6 +62,7 @@ private:
                                               // `NotBasic' otherwise
 
 public:
+   int tag;
    CgenNode(Class_ c,
             Basicness bstatus,
             CgenClassTableP class_table);
