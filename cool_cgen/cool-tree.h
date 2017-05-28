@@ -161,6 +161,7 @@ public:
    }
    Class_ copy_Class_();
    void dump(ostream& stream, int n);
+   void cgen();
 
 #ifdef Class__SHARED_EXTRAS
    Class__SHARED_EXTRAS

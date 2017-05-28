@@ -128,6 +128,7 @@ BoolConst truebool(TRUE);
 // generator.
 //
 //*********************************************************
+CgenClassTable *codegen_classtable = NULL;
 
 void program_class::cgen(ostream &os) 
 {
@@ -135,9 +136,17 @@ void program_class::cgen(ostream &os)
   os << "# start of generated code\n";
 
   initialize_constants();
-  CgenClassTable *codegen_classtable = new CgenClassTable(classes,os);
+  codegen_classtable = new CgenClassTable(classes,os);
+  codegen_classtable->code();
+  for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
+    class__class* c = (class__class *) classes->nth(i);
+    c->cgen();
+  }
 
   os << "\n# end of generated code\n";
+}
+
+void class__class::cgen() {
 }
 
 
@@ -816,6 +825,17 @@ void CgenNode::set_parentnd(CgenNodeP p)
 }
 
 
+void CgenClassTable::code_class_nameTab() {
+}
+
+void CgenClassTable::code_class_objTab() {
+}
+
+void CgenClassTable::code_dispatch_table() {
+}
+
+void CgenClassTable::code_class_prototypes() {
+}
 
 void CgenClassTable::code()
 {
@@ -828,11 +848,17 @@ void CgenClassTable::code()
   if (cgen_debug) cout << "coding constants" << endl;
   code_constants();
 
-//                 Add your code to emit
-//                   - prototype objects
-//                   - class_nameTab
-//                   - dispatch tables
-//
+  if (cgen_debug) cout << "coding class name table" << endl;
+  void code_class_nameTab();
+
+  if (cgen_debug) cout << "coding class object tables" << endl;
+  void code_class_objTab();
+
+  if (cgen_debug) cout << "coding dispatch tables" << endl;
+  void code_dispatch_table();
+
+  if (cgen_debug) cout << "coding class prototypes" << endl;
+  void code_class_prototypes();
 
   if (cgen_debug) cout << "coding global text" << endl;
   code_global_text();
