@@ -528,6 +528,7 @@ void CgenClassTable::code_global_data()
   // The following global names must be defined first.
   //
   str << GLOBAL << CLASSNAMETAB << endl;
+  str << GLOBAL << CLASSOBJTAB << endl;
   str << GLOBAL; emit_protobj_ref(main,str);    str << endl;
   str << GLOBAL; emit_protobj_ref(integer,str); str << endl;
   str << GLOBAL; emit_protobj_ref(string,str);  str << endl;
@@ -626,7 +627,7 @@ void CgenClassTable::code_constants()
 }
 
 
-CgenClassTable::CgenClassTable(Classes classes, ostream& s) : nds(NULL) , str(s)
+CgenClassTable::CgenClassTable(Classes classes, ostream& s) : str(s)
 {
    // set tag in install_class()
    stringclasstag = 0 /* Change to your String class tag here */;
@@ -789,10 +790,8 @@ void CgenClassTable::install_class(CgenNodeP nd)
     boolclasstag = current_tag;
   }
   nd->tag = current_tag;
+  nds.push_back(nd);
   current_tag++;
-  // The class name is legal, so add it to the list of classes
-  // and the symbol table.
-  nds = new List<CgenNode>(nd,nds);
   addid(name,nd);
 }
 
@@ -807,8 +806,8 @@ void CgenClassTable::install_classes(Classes cs)
 //
 void CgenClassTable::build_inheritance_tree()
 {
-  for(List<CgenNode> *l = nds; l; l = l->tl())
-      set_relations(l->hd());
+  for(int i = 0; i < current_tag; i++)
+      set_relations(nds[i]);
 }
 
 //
@@ -838,9 +837,22 @@ void CgenNode::set_parentnd(CgenNodeP p)
 
 
 void CgenClassTable::code_class_nameTab() {
+  str << CLASSNAMETAB << LABEL;
+  for (int i = 0; i < current_tag; i++) {
+    str << WORD;
+    stringtable.lookup_string(nds[i]->get_name()->get_string())
+      ->code_ref(str);
+    str << endl;
+  }
 }
 
 void CgenClassTable::code_class_objTab() {
+  str << CLASSOBJTAB << LABEL;
+  for (int i = 0; i < current_tag; i++) {
+    str << WORD << nds[i]->get_name() << PROTOBJ_SUFFIX << endl;
+    str << WORD << nds[i]->get_name() << CLASSINIT_SUFFIX << endl;
+  }
+
 }
 
 void CgenClassTable::code_dispatch_table() {

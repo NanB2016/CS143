@@ -4,6 +4,8 @@
 #include "cool-tree.h"
 #include "symtab.h"
 
+#include <vector>
+
 enum Basicness     {Basic, NotBasic};
 #define TRUE 1
 #define FALSE 0
@@ -16,13 +18,12 @@ typedef CgenNode *CgenNodeP;
 
 class CgenClassTable : public SymbolTable<Symbol,CgenNode> {
 private:
-   List<CgenNode> *nds;
    ostream& str;
    int stringclasstag;
    int intclasstag;
    int boolclasstag;
    int current_tag;
-
+   std::vector<CgenNodeP> nds;
 
 // The following methods emit code for
 // constants and global declarations.
