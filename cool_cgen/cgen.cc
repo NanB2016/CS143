@@ -28,6 +28,9 @@
 extern void emit_string_constant(ostream& str, char *s);
 extern int cgen_debug;
 
+SymbolTable<Symbol, char> addrTab;
+class__class* current_class = NULL;
+
 //
 // Three symbols from the semantic analyzer (semant.cc) are used.
 // If e : No_type, then no code is generated for e.
@@ -140,6 +143,7 @@ void program_class::cgen(ostream &os)
   codegen_classtable->code();
   for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
     class__class* c = (class__class *) classes->nth(i);
+    current_class = c;
     c->code(codegen_classtable->str);
   }
 
@@ -794,6 +798,7 @@ void CgenClassTable::install_class(CgenNodeP nd)
   }
   nd->tag = current_tag;
   nds.push_back(nd);
+  nd_map.insert(std::make_pair(name, nd));
   current_tag++;
   addid(name,nd);
 }
@@ -942,9 +947,11 @@ void CgenClassTable::code_class_init() {
     // push registers to stack like funciton calls
     emit_push(FP, str);
     emit_push(RA, str);
-    emit_push(ACC, str); // store the pointer to the current object on stack
+    emit_push(SELF, str); // store the pointer to the current object on stack
     emit_addiu(FP, SP, 4, str);
+    emit_move(SELF, ACC, str);
 
+    addrTab.enterscope();
     // init parent class
     if (nds[i]->get_parent() != No_class) {
       std::string ptr = 
@@ -957,18 +964,28 @@ void CgenClassTable::code_class_init() {
     if (nds[i]->get_parent() != No_class) {
       start = nds[i]->get_parentnd()->attrs_ordered.size();
     }
+
+    for (int j = start; j < nds[i]->attrs_ordered.size(); j++) {
+      attr_class* attr = nds[i]->attrs_ordered[j];
+      char* addr = new char[50];
+      sprintf(addr, "%d($s0)", j * 4 + 12);
+      addrTab.addid(attr->get_name(), addr);
+    }
+
     for (int j = start; j < nds[i]->attrs_ordered.size(); j++) {
       attr_class* attr = nds[i]->attrs_ordered[j];
       attr->init->code(str);
       if (typeid(*attr) == typeid(no_expr_class)) continue;
-      emit_load(T1, 1, SP, str); // pointer to the current object
-      emit_store(ACC, j + DEFAULT_OBJFIELDS, T1, str);
+      emit_store(ACC, j + DEFAULT_OBJFIELDS, SELF, str);
       if (cgen_Memmgr == GC_GENGC) {
-        emit_addiu(A1, T1, 4 * (j + DEFAULT_OBJFIELDS), str);
+        emit_addiu(A1, SELF, 4 * (j + DEFAULT_OBJFIELDS), str);
         emit_jal("_GenGC_Assign", str);
       }
     }
-    emit_pop(ACC, str);
+    addrTab.exitscope();
+
+    emit_move(ACC, SELF, str);
+    emit_pop(SELF, str);
     emit_pop(RA, str);
     emit_pop(FP, str);
     emit_return(str);
@@ -1037,31 +1054,51 @@ CgenNode::CgenNode(Class_ nd, Basicness bstatus, CgenClassTableP ct) :
 //
 //*****************************************************************
 
-class__class* current_class = NULL;
-
 void class__class::code(ostream &s) {
-  current_class = this;
+  addrTab.enterscope();
+  CgenNodeP n = codegen_classtable->nd_map[name];
+
+  for (int j = 0; j < n->attrs_ordered.size(); j++) {
+    attr_class* attr = n->attrs_ordered[j];
+    char* addr = new char[50];
+    sprintf(addr, "%d($s0)", j * 4 + 12);
+    addrTab.addid(attr->get_name(), addr);
+  }
+
   for(int i = features->first(); features->more(i); i = features->next(i)) {
     if (features->nth(i)->is_method) {
       ((method_class *)(features->nth(i)))->code(s);
     }
   }
+  addrTab.exitscope();
 }
 
 void method_class::code(ostream &s) {
+  addrTab.enterscope();
+
+  for(int i = formals->first(); formals->more(i); i = formals->next(i)) {
+    formal_class* f = (formal_class *)formals->nth(i);
+    char* addr = new char[50];
+    sprintf(addr, "%d($fp)", (nf - i) * 4 + 4); // +4 due to additional SELF
+    addrTab.addid(f->get_name(), addr);
+  }
+
   int nf = formals->len();
   emit_method_ref(current_class->name, name, s); s << LABEL;
 
-  // copy from lecture 12 note
+  // adding SELF in additional to existing registers in lecture 12
   emit_push(RA, s);
+  emit_push(SELF, s)
   emit_addiu(FP, SP, 4, s);
   
   expr->code(s);
 
-  emit_load(RA, 4, SP, s);
-  emit_addiu(SP, SP, 4 * (nf + 2), s);
+  emit_load(SELF, 4, SP, s);
+  emit_load(RA, 8, SP, s);
+  emit_addiu(SP, SP, 4 * (nf + 3), s);
   emit_load(FP, 0, SP, s);
   emit_return(s);
+  addrTab.exitscope();
 }
 
 void assign_class::code(ostream &s) {

@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #include <queue>
 #include <algorithm>
 
@@ -52,6 +53,7 @@ private:
    void build_inheritance_tree();
    void set_relations(CgenNodeP nd);
 public:
+   std::map<Symbol, CgenNodeP> nd_map;
    ostream& str;
    CgenClassTable(Classes, ostream& str);
    void code();

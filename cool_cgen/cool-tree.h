@@ -217,6 +217,7 @@ public:
       is_method = false;
    }
    Symbol get_type_decl() { return type_decl; }
+   Symbol get_name() { return name; }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
 
@@ -239,6 +240,7 @@ public:
       name = a1;
       type_decl = a2;
    }
+   Symbol get_name() { return name; }
    Formal copy_Formal();
    void dump(ostream& stream, int n);
 
