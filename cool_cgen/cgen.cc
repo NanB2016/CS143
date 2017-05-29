@@ -30,6 +30,7 @@ extern int cgen_debug;
 
 SymbolTable<Symbol, char> addrTab;
 class__class* current_class = NULL;
+int label = 0;
 
 //
 // Three symbols from the semantic analyzer (semant.cc) are used.
@@ -851,6 +852,16 @@ void CgenClassTable::build_inheritance_tree()
   }
 }
 
+int CgenClassTable::method_index(Symbol c, Symbol m) {
+  CgenNodeP n = nd_map[c];
+  for (int i = 0; i < n->methods_ordered.size(); i++) {
+    if (m == n->methods_ordered[i]->get_name()) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 //
 // CgenClassTable::set_relations
 //
@@ -1075,20 +1086,20 @@ void class__class::code(ostream &s) {
 
 void method_class::code(ostream &s) {
   addrTab.enterscope();
+  int nf = formals->len();
 
   for(int i = formals->first(); formals->more(i); i = formals->next(i)) {
     formal_class* f = (formal_class *)formals->nth(i);
     char* addr = new char[50];
-    sprintf(addr, "%d($fp)", (nf - i) * 4 + 4); // +4 due to additional SELF
+    sprintf(addr, "%d($fp)", i * 4 + 8); // +8 due to additional SELF
     addrTab.addid(f->get_name(), addr);
   }
 
-  int nf = formals->len();
   emit_method_ref(current_class->name, name, s); s << LABEL;
 
   // adding SELF in additional to existing registers in lecture 12
   emit_push(RA, s);
-  emit_push(SELF, s)
+  emit_push(SELF, s);
   emit_addiu(FP, SP, 4, s);
   
   expr->code(s);
@@ -1102,54 +1113,216 @@ void method_class::code(ostream &s) {
 }
 
 void assign_class::code(ostream &s) {
+  expr->code(s);
+  char* addr = addrTab.lookup(name);
+  s << SW << ACC << " " << addr << endl;
 }
 
 void static_dispatch_class::code(ostream &s) {
+  int na = actual->len();
+  for(int i = actual->first(); actual->more(i); i = actual->next(i)) {
+    Expression e = (Expression) actual->nth(na - 1 - i);
+    e->code(s);
+    emit_push(ACC, s);
+  }
+
+  expr->code(s);
+
+  //TODO: dispatch on void
+
+  Symbol class_name = type_name;
+  std::string class_str(type_name->get_string());
+  if (type_name == SELF_TYPE) {
+    class_name = current_class->get_name();
+    class_str = current_class->get_name()->get_string();
+  }
+
+  std::string disp_tab = class_str + DISPTAB_SUFFIX;
+  int method_offset = codegen_classtable->method_index(class_name, name);
+  emit_load_address(T1, (char*) disp_tab.c_str(), s);
+  emit_load(T1, method_offset, T1, s);
+  emit_jalr(T1, s);
 }
 
 void dispatch_class::code(ostream &s) {
+  int na = actual->len();
+  for(int i = actual->first(); actual->more(i); i = actual->next(i)) {
+    Expression e = (Expression) actual->nth(na - 1 - i);
+    e->code(s);
+    emit_push(ACC, s);
+  }
+
+  expr->code(s);
+
+  //TODO: dispatch on void
+
+  Symbol class_name = expr->get_type();
+  if (class_name == SELF_TYPE) {
+    class_name = current_class->get_name();
+  }
+
+  int method_offset = codegen_classtable->method_index(class_name, name);
+  emit_load(T1, 2, ACC, s);
+  emit_load(T1, method_offset, T1, s);
+  emit_jalr(T1, s);
+
 }
 
 void cond_class::code(ostream &s) {
+  int false_branch = label++;
+  int end_branch = label++;
+
+  pred->code(s);
+  emit_load(T1, 3, ACC, s);
+  emit_beqz(T1, false_branch, s);
+
+  then_exp->code(s);
+  emit_branch(end_branch, s);
+
+  emit_label_def(false_branch, s);
+  else_exp->code(s);
+
+  emit_label_def(end_branch, s);
 }
 
 void loop_class::code(ostream &s) {
+  int cond_branch = label++;
+  int end_branch = label++;
+
+
+  emit_label_def(cond_branch, s);
+  pred->code(s);
+  emit_load(T1, 3, ACC, s);
+  emit_beqz(T1, end_branch, s);
+
+  body->code(s);
+  emit_branch(cond_branch, s);
+
+  emit_label_def(end_branch, s);
+  emit_move(ACC, ZERO, s);
 }
 
 void typcase_class::code(ostream &s) {
 }
 
-void block_class::code(ostream &s) {
-}
-
 void let_class::code(ostream &s) {
 }
 
+void branch_class::code(ostream &s) {
+  expr->code(s);
+}
+
+void block_class::code(ostream &s) {
+  for(int i = body->first(); body->more(i); i = body->next(i)) {
+    Expression e = body->nth(i);
+    e->code(s);
+  }
+}
+
+void double_reg(Expression e1, Expression e2, ostream &s) {
+  e1->code(s);
+  emit_load(T1, 3, ACC, s);
+  emit_push(T1, s);
+  e2->code(s);
+  emit_load(T2, 3, ACC, s);
+  emit_pop(T1, s);
+}
+
 void plus_class::code(ostream &s) {
+  double_reg(e1, e2, s);
+  emit_add(ACC, T1, T2, s);
 }
 
 void sub_class::code(ostream &s) {
+  double_reg(e1, e2, s);
+  emit_sub(ACC, T1, T2, s);
 }
 
 void mul_class::code(ostream &s) {
+  double_reg(e1, e2, s);
+  emit_mul(ACC, T1, T2, s);
 }
 
 void divide_class::code(ostream &s) {
+  double_reg(e1, e2, s);
+  emit_div(ACC, T1, T2, s);
+}
+
+void comp_common_begin(Expression e1, Expression e2, ostream &s) {
+  double_reg(e1, e2, s);
+  
+  emit_partial_load_address(ACC, s);
+  truebool.code_ref(s); s << endl;
+}
+
+void comp_common_end(Expression e1, Expression e2, ostream &s) {
+  emit_partial_load_address(ACC, s);
+  falsebool.code_ref(s); s << endl;
 }
 
 void neg_class::code(ostream &s) {
+  e1->code(s);
+  emit_load(T1, 3, ACC, s);
+  emit_neg(T2, T1, s);
+  emit_store(T2, 3, ACC, s);
 }
 
 void lt_class::code(ostream &s) {
+  comp_common_begin(e1, e2, s);
+
+  int tmp_label = label++;
+  emit_blt(T1, T2, tmp_label, s);
+
+  comp_common_end(e1, e2, s);
+
+  emit_label_def(tmp_label, s);
 }
 
 void eq_class::code(ostream &s) {
+  e1->code(s);
+  emit_push(ACC, s);
+  e2->code(s);
+  emit_move(T2, ACC, s);
+  emit_pop(T1, s);
+
+  emit_partial_load_address(ACC, s);
+  truebool.code_ref(s); s << endl;
+
+  int tmp_label = label++;
+  emit_beq(T1, T2, tmp_label, s);
+
+  emit_partial_load_address(ACC, s);
+  falsebool.code_ref(s); s << endl;
+
+  emit_label_def(tmp_label, s);
 }
 
 void leq_class::code(ostream &s) {
+  comp_common_begin(e1, e2, s);
+
+  int tmp_label = label++;
+  emit_bleq(T1, T2, tmp_label, s);
+
+  comp_common_end(e1, e2, s);
+
+  emit_label_def(tmp_label, s);
 }
 
 void comp_class::code(ostream &s) {
+  e1->code(s);
+
+  emit_load(T1, 3, ACC, s);
+
+  emit_partial_load_address(ACC, s);
+  truebool.code_ref(s); s << endl;
+
+  int tmp_label = label++;
+  emit_beqz(T1, tmp_label, s);
+
+  emit_partial_load_address(ACC, s);
+  falsebool.code_ref(s); s << endl;
+
+  emit_label_def(tmp_label, s);
 }
 
 void int_const_class::code(ostream& s)  
@@ -1171,15 +1344,53 @@ void bool_const_class::code(ostream& s)
 }
 
 void new__class::code(ostream &s) {
+  std::string class_name = std::string(type_name->get_string());
+  if (type_name == SELF_TYPE) { // need contextual info
+    emit_load(T1, 0, SELF, s);
+    emit_sll(T1, T1, 3, s);
+    emit_load_address(T2, CLASSOBJTAB, s);
+    emit_addu(T2, T2, T1, s);
+    emit_move(ACC, T1, s);
+    emit_push(T1, s);
+    emit_jal("Object.copy", s);
+    emit_pop(T1, s);
+    emit_load(T2, 4, T1, s);
+    emit_jalr(T2, s);
+  } else {
+    std::string prototype = class_name + PROTOBJ_SUFFIX;
+    std::string init_method = class_name + CLASSINIT_SUFFIX;
+    emit_load_address(ACC, (char*) prototype.c_str(), s);
+    emit_jal("Object.copy", s);
+    emit_jal((char*) init_method.c_str(), s);
+  }
 }
 
 void isvoid_class::code(ostream &s) {
+  emit_move(T1, ACC, s);
+
+  emit_partial_load_address(ACC, s);
+  truebool.code_ref(s); s << endl;
+
+  int tmp_label = label++;
+  emit_beqz(T1, tmp_label, s);
+
+  emit_partial_load_address(ACC, s);
+  falsebool.code_ref(s); s << endl;
+
+  emit_label_def(tmp_label, s);
 }
 
 void no_expr_class::code(ostream &s) {
+  emit_load_imm(ACC, 0, s);
 }
 
 void object_class::code(ostream &s) {
+  if (name == self) {
+    emit_move(ACC, SELF, s);
+  } else {
+    char* addr = addrTab.lookup(name);
+    s << LW << ACC << " " << addr <<endl;
+  }
 }
 
 

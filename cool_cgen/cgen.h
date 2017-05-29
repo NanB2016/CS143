@@ -55,6 +55,7 @@ private:
 public:
    std::map<Symbol, CgenNodeP> nd_map;
    ostream& str;
+   int method_index(Symbol c, Symbol m);
    CgenClassTable(Classes, ostream& str);
    void code();
    CgenNodeP root();

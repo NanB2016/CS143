@@ -266,6 +266,7 @@ public:
       expr = a3;
    }
    Case copy_Case();
+   void code(ostream &s);
    void dump(ostream& stream, int n);
 
 #ifdef Case_SHARED_EXTRAS
