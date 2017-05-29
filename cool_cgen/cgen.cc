@@ -331,6 +331,12 @@ static void emit_push(char *reg, ostream& str)
   emit_addiu(SP,SP,-4,str);
 }
 
+static void emit_pop(char *reg, ostream& str)
+{
+  emit_load(reg,1,SP,str);
+  emit_addiu(SP,SP,4,str);
+}
+
 //
 // Fetch the integer value in an Int object.
 // Emits code to fetch the integer value of the Integer object pointed
@@ -413,7 +419,7 @@ void StringEntry::code_def(ostream& s, int stringclasstag)
 
  /***** Add dispatch information for class String ******/
 
-      s << endl;                                              // dispatch table
+      s << Str << DISPTAB_SUFFIX << endl;         // dispatch table
       s << WORD;  lensym->code_ref(s);  s << endl;            // string length
   emit_string_constant(s,str);                                // ascii string
   s << ALIGN;                                                 // align to word
@@ -455,7 +461,7 @@ void IntEntry::code_def(ostream &s, int intclasstag)
 
  /***** Add dispatch information for class Int ******/
 
-      s << endl;                                          // dispatch table
+      s << Int << DISPTAB_SUFFIX << endl;                  // dispatch table
       s << WORD << str << endl;                           // integer value
 }
 
@@ -499,7 +505,7 @@ void BoolConst::code_def(ostream& s, int boolclasstag)
 
  /***** Add dispatch information for class Bool ******/
 
-      s << endl;                                            // dispatch table
+      s << Bool << DISPTAB_SUFFIX << endl;                  // dispatch table
       s << WORD << val << endl;                             // value (0 or 1)
 }
 
@@ -892,7 +898,7 @@ void CgenClassTable::code_dispatch_table() {
   for (int i = 0; i < current_tag; i++) {
     str << nds[i]->get_name() << DISPTAB_SUFFIX << LABEL;
     for (int j = 0; j < nds[i]->methods_ordered.size(); j++) {
-      str << WORD << nds[i]->get_name() << "."
+      str << WORD << nds[i]->get_name() << METHOD_SEP
           << nds[i]->methods_ordered[j]->get_name();
     }
   }
@@ -932,6 +938,47 @@ void CgenClassTable::code_class_prototypes() {
   }
 }
 
+void CgenClassTable::code_class_init() {
+  for (int i = 0; i < current_tag; i++) {
+    emit_init_ref(nds[i]->get_name(), str); str << LABEL;
+    
+    // push registers to stack like funciton calls
+    emit_push(FP, str);
+    emit_push(RA, str);
+    emit_push(SELF, str);
+    emit_addiu(FP, SP, 4, str);
+    emit_move(SELF, ACC, str);
+
+    // init parent class
+    if (nds[i]->get_parent() != No_class) {
+      std::string addr = 
+        std::string(nds[i]->get_parent()->get_string()) + CLASSINIT_SUFFIX;
+      emit_jal((char*) addr.c_str(), str);
+    }
+
+    // init own attributes
+    int start = 0;
+    if (nds[i]->get_parent() != No_class) {
+      start = nds[i]->get_parentnd()->attrs_ordered.size();
+    }
+    for (int j = start; j < nds[i]->attrs_ordered.size(); j++) {
+      attr_class* attr = nds[i]->attrs_ordered[j];
+      attr->init->code(str);
+      if (typeid(*attr) == typeid(no_expr_class)) continue;
+      emit_store(ACC, j + DEFAULT_OBJFIELDS, SELF, str);
+      if (cgen_Memmgr == GC_GENGC) {
+        emit_addiu(A1, SELF, 4 * (j + DEFAULT_OBJFIELDS), str);
+        emit_jal("_GenGC_Assign", str);
+      }
+    }
+    emit_move(ACC, SELF, str);
+    emit_pop(SELF, str);
+    emit_pop(RA, str);
+    emit_pop(FP, str);
+    emit_return(str);
+  }
+}
+
 void CgenClassTable::code()
 {
   if (cgen_debug) cout << "coding global data" << endl;
@@ -958,11 +1005,8 @@ void CgenClassTable::code()
   if (cgen_debug) cout << "coding global text" << endl;
   code_global_text();
 
-//                 Add your code to emit
-//                   - object initializer
-//                   - the class methods
-//                   - etc...
-
+  if (cgen_debug) cout << "coding class init" << endl;
+  code_class_init();
 }
 
 
