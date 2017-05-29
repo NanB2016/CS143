@@ -5,6 +5,9 @@
 #include "symtab.h"
 
 #include <vector>
+#include <set>
+#include <queue>
+#include <algorithm>
 
 enum Basicness     {Basic, NotBasic};
 #define TRUE 1
@@ -58,18 +61,22 @@ public:
 class CgenNode : public class__class {
 private: 
    CgenNodeP parentnd;                        // Parent of class
-   List<CgenNode> *children;                  // Children of class
    Basicness basic_status;                    // `Basic' if class is basic
                                               // `NotBasic' otherwise
 
 public:
    int tag;
+   std::set<CgenNodeP> children;                  // Children of class
+   // order the attributes and methods in terms of
+   // inheritance graph
+   std::vector<attr_class*> attrs_ordered;
+   std::vector<method_class*> methods_ordered;
+
    CgenNode(Class_ c,
             Basicness bstatus,
             CgenClassTableP class_table);
 
    void add_child(CgenNodeP child);
-   List<CgenNode> *get_children() { return children; }
    void set_parentnd(CgenNodeP p);
    CgenNodeP get_parentnd() { return parentnd; }
    int basic() { return (basic_status == Basic); }

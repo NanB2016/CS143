@@ -808,6 +808,39 @@ void CgenClassTable::build_inheritance_tree()
 {
   for(int i = 0; i < current_tag; i++)
       set_relations(nds[i]);
+
+  // BFS inheritance graph to build attribute and method lists
+  std::queue<CgenNodeP> cls_queue;
+  cls_queue.push(root());
+  while (!cls_queue.empty()) {
+    CgenNodeP nd = cls_queue.front(); cls_queue.pop();
+    // copy parent's list
+    nd->attrs_ordered = nd->get_parentnd()->attrs_ordered;
+    nd->methods_ordered = nd->get_parentnd()->methods_ordered;
+
+    // insert its own features with method dedup
+    Features features = nd->get_features();
+    for (int i = features->first(); features->more(i); i = features->next(i)) {
+      Feature f = features->nth(i);
+      if (f->is_method) {
+        std::vector<method_class*>::iterator fit;
+        fit = std::find(nd->methods_ordered.begin(),
+                        nd->methods_ordered.end(),
+                        (method_class*) f);
+        if (fit == nd->methods_ordered.end()) {
+          nd->methods_ordered.push_back((method_class*) f);
+        }
+      } else {
+        nd->attrs_ordered.push_back((attr_class*) f);
+      }
+    }
+
+    // add children to BFS queue
+    std::set<CgenNodeP>::iterator it;
+    for (it = nd->children.begin(); it != nd->children.end(); it++) {
+      cls_queue.push(*it);
+    }
+  }
 }
 
 //
@@ -825,7 +858,7 @@ void CgenClassTable::set_relations(CgenNodeP nd)
 
 void CgenNode::add_child(CgenNodeP n)
 {
-  children = new List<CgenNode>(n,children);
+  children.insert(n);
 }
 
 void CgenNode::set_parentnd(CgenNodeP p)
@@ -910,7 +943,6 @@ CgenNodeP CgenClassTable::root()
 CgenNode::CgenNode(Class_ nd, Basicness bstatus, CgenClassTableP ct) :
    class__class((const class__class &) *nd),
    parentnd(NULL),
-   children(NULL),
    basic_status(bstatus)
 { 
    stringtable.add_string(name->get_string());          // Add class name to string table

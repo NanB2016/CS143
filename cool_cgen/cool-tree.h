@@ -47,6 +47,7 @@ typedef class Feature_class *Feature;
 
 class Feature_class : public tree_node {
 public:
+   bool is_method;
    tree_node *copy()		 { return copy_Feature(); }
    virtual Feature copy_Feature() = 0;
 
@@ -159,6 +160,7 @@ public:
       features = a3;
       filename = a4;
    }
+   Features get_features() { return features; }
    Class_ copy_Class_();
    void dump(ostream& stream, int n);
    void cgen();
@@ -185,6 +187,7 @@ public:
       formals = a2;
       return_type = a3;
       expr = a4;
+      is_method = true;
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
@@ -209,6 +212,7 @@ public:
       name = a1;
       type_decl = a2;
       init = a3;
+      is_method = false;
    }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
