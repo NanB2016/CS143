@@ -889,6 +889,13 @@ void CgenClassTable::code_class_objTab() {
 }
 
 void CgenClassTable::code_dispatch_table() {
+  for (int i = 0; i < current_tag; i++) {
+    str << nds[i]->get_name() << DISPTAB_SUFFIX << LABEL;
+    for (int j = 0; j < nds[i]->methods_ordered.size(); j++) {
+      str << WORD << nds[i]->get_name() << "."
+          << nds[i]->methods_ordered[j]->get_name();
+    }
+  }
 }
 
 void CgenClassTable::code_class_prototypes() {

@@ -189,6 +189,7 @@ public:
       expr = a4;
       is_method = true;
    }
+   Symbol get_name() { return name; }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
 
