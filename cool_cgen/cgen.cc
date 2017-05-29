@@ -24,6 +24,7 @@
 
 #include "cgen.h"
 #include "cgen_gc.h"
+#include <typeinfo>
 
 extern void emit_string_constant(ostream& str, char *s);
 extern int cgen_debug;
@@ -31,6 +32,7 @@ extern int cgen_debug;
 SymbolTable<Symbol, char> addrTab;
 class__class* current_class = NULL;
 int label = 0;
+int fp_offset = 0;
 
 //
 // Three symbols from the semantic analyzer (semant.cc) are used.
@@ -1101,7 +1103,8 @@ void method_class::code(ostream &s) {
   emit_push(RA, s);
   emit_push(SELF, s);
   emit_addiu(FP, SP, 4, s);
-  
+
+  fp_offset = 0; // reset stack distance to frame pointer
   expr->code(s);
 
   emit_load(SELF, 4, SP, s);
@@ -1205,7 +1208,35 @@ void loop_class::code(ostream &s) {
 void typcase_class::code(ostream &s) {
 }
 
+bool is_basic_class(Symbol c) {
+  return c == Int || c == Bool || c == Str || c == IO;
+}
+
 void let_class::code(ostream &s) {
+  addrTab.enterscope();
+
+  if (typeid(*init) == typeid(no_expr_class) && is_basic_class(type_decl)) {
+    std::string class_name = std::string(type_decl->get_string());
+    std::string prototype = class_name + PROTOBJ_SUFFIX;
+    std::string init_method = class_name + CLASSINIT_SUFFIX;
+    emit_load_address(ACC, (char*) prototype.c_str(), s);
+    emit_jal("Object.copy", s);
+    emit_jal((char*) init_method.c_str(), s);
+  } else {
+    init->code(s);
+  }
+
+  emit_push(ACC, s);
+  fp_offset -= 4;
+  char* addr = new char[50];
+  sprintf(addr, "%d($fp)", fp_offset);
+  addrTab.addid(identifier, addr);
+
+  body->code(s);
+  
+  emit_pop(T1, s); // don't touch ACC returned from body
+  fp_offset += 4;
+  addrTab.exitscope();
 }
 
 void branch_class::code(ostream &s) {
