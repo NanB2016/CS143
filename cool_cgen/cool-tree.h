@@ -163,7 +163,7 @@ public:
    Features get_features() { return features; }
    Class_ copy_Class_();
    void dump(ostream& stream, int n);
-   void cgen();
+   void code(ostream& s);
 
 #ifdef Class__SHARED_EXTRAS
    Class__SHARED_EXTRAS
@@ -192,6 +192,7 @@ public:
    Symbol get_name() { return name; }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
+   void code(ostream& s);
 
 #ifdef Feature_SHARED_EXTRAS
    Feature_SHARED_EXTRAS

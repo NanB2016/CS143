@@ -21,7 +21,6 @@ typedef CgenNode *CgenNodeP;
 
 class CgenClassTable : public SymbolTable<Symbol,CgenNode> {
 private:
-   ostream& str;
    int stringclasstag;
    int intclasstag;
    int boolclasstag;
@@ -53,6 +52,7 @@ private:
    void build_inheritance_tree();
    void set_relations(CgenNodeP nd);
 public:
+   ostream& str;
    CgenClassTable(Classes, ostream& str);
    void code();
    CgenNodeP root();
