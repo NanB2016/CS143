@@ -215,6 +215,7 @@ public:
       init = a3;
       is_method = false;
    }
+   Symbol get_type_decl() { return type_decl; }
    Feature copy_Feature();
    void dump(ostream& stream, int n);
 

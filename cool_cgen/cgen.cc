@@ -899,6 +899,37 @@ void CgenClassTable::code_dispatch_table() {
 }
 
 void CgenClassTable::code_class_prototypes() {
+  // refer to cool runtime manual Figure 2
+  for (int i = 0; i < current_tag; i++) {
+    str << WORD << "-1" << endl; // for garbage collector
+
+    str << nds[i]->get_name() << PROTOBJ_SUFFIX << LABEL;
+
+    str << WORD << nds[i]->tag << endl;
+
+    str << WORD << DEFAULT_OBJFIELDS + nds[i]->attrs_ordered.size() << endl;
+
+    str << WORD << nds[i]->get_name() << DISPTAB_SUFFIX << endl;
+
+    for (int j = 0; j < nds[i]->attrs_ordered.size(); j++) {
+      attr_class* attr = nds[i]->attrs_ordered[j];
+      str << WORD;
+
+      if (attr->get_type_decl() == Int) {
+        IntEntryP ie = inttable.lookup_string("0");
+        ie->code_ref(str);
+      } else if (attr->get_type_decl() == Bool) {
+        falsebool.code_ref(str);
+      } else if (attr->get_type_decl() == Str) {
+        StringEntryP se = stringtable.lookup_string("");
+        se->code_ref(str);
+      } else {
+        str << 0;
+      }
+
+      str << endl;
+    }
+  }
 }
 
 void CgenClassTable::code()
