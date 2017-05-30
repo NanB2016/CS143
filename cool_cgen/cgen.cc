@@ -923,13 +923,9 @@ void CgenClassTable::code_class_prototypes() {
   // refer to cool runtime manual Figure 2
   for (int i = 0; i < current_tag; i++) {
     str << WORD << "-1" << endl; // for garbage collector
-
     str << nds[i]->get_name() << PROTOBJ_SUFFIX << LABEL;
-
     str << WORD << nds[i]->tag << endl;
-
     str << WORD << DEFAULT_OBJFIELDS + nds[i]->attrs_ordered.size() << endl;
-
     str << WORD << nds[i]->get_name() << DISPTAB_SUFFIX << endl;
 
     for (int j = 0; j < nds[i]->attrs_ordered.size(); j++) {
@@ -1202,10 +1198,57 @@ void loop_class::code(ostream &s) {
   emit_branch(cond_branch, s);
 
   emit_label_def(end_branch, s);
-  emit_move(ACC, ZERO, s);
+  // what's the return value in ACC here?
+}
+
+void emit_match_children_class(
+  char* reg, 
+  CgenNodeP n,
+  int expr_label,
+  ostream& s) {
+  emit_load_imm(T3, n->tag, s);
+  emit_beq(reg, T3, expr_label, s);
+  
+  std::set<CgenNodeP>::iterator it;
+  for (it = n->children.begin(); it != n->children.end(); it++) {
+    emit_match_children_class(reg, *it, expr_label, s);
+  }
 }
 
 void typcase_class::code(ostream &s) {
+  expr->code(s);
+
+  emit_load(T1, 0, ACC, s); // class tag of expr, it will not be overwritten
+  int end_label = label++;
+
+  emit_push(ACC, s);
+  fp_offset -= 4;
+  char* addr = new char[50];
+  sprintf(addr, "%d($fp)", fp_offset);
+
+  for(int i = cases->first(); cases->more(i); i = cases->next(i)) {
+    addrTab.enterscope();
+    branch_class* b = (branch_class*) cases->nth(i);
+    CgenNodeP nd = codegen_classtable->nd_map[b->type_decl];
+    
+    int expr_label = label++;
+    int next_label = label++;
+    emit_match_children_class(T1, nd, expr_label, s);
+    emit_branch(next_label, s);
+
+    emit_label_def(expr_label, s);
+    addrTab.addid(b->name, addr);
+    b->expr->code(s);
+    emit_pop(T2, s); // T2 is not used
+    emit_branch(end_label, s);
+    emit_label_def(next_label, s);
+
+    addrTab.exitscope();
+  }
+
+  emit_label_def(end_label, s);
+
+  fp_offset += 4;
 }
 
 bool is_basic_class(Symbol c) {
@@ -1226,6 +1269,8 @@ void let_class::code(ostream &s) {
     init->code(s);
   }
 
+  // put identifier's instance to stack and record it's position relative to
+  // frame pointer in order to reference it.
   emit_push(ACC, s);
   fp_offset -= 4;
   char* addr = new char[50];
@@ -1412,7 +1457,7 @@ void isvoid_class::code(ostream &s) {
 }
 
 void no_expr_class::code(ostream &s) {
-  emit_load_imm(ACC, 0, s);
+  emit_move(ACC, ZERO, s);
 }
 
 void object_class::code(ostream &s) {
