@@ -143,7 +143,6 @@ void program_class::cgen(ostream &os)
 
   initialize_constants();
   codegen_classtable = new CgenClassTable(classes,os);
-  codegen_classtable->code();
   for(int i = classes->first(); classes->more(i); i = classes->next(i)) {
     class__class* c = (class__class *) classes->nth(i);
     current_class = c;
