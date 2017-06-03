@@ -806,6 +806,7 @@ void TypeChecker::check(comp_class* e) {
 }
 
 void TypeChecker::check(branch_class* e) {
+  enterscope();
   addid(e->get_name(), e);
   check(e->get_expr());
 
@@ -818,6 +819,7 @@ void TypeChecker::check(branch_class* e) {
   if (e->get_type_decl() == SELF_TYPE) {
     semant_error(e) << "case branch: class cannot be SELF_TYPE." << endl;
   }
+  exitscope();
 }
 
 void TypeChecker::check(assign_class* e) {
