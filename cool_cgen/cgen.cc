@@ -49,7 +49,7 @@ int fp_offset = 0;
 // as fixed names used by the runtime system.
 //
 //////////////////////////////////////////////////////////////////////
-Symbol 
+Symbol
        arg,
        arg2,
        Bool,
@@ -94,7 +94,7 @@ static void initialize_constants(void)
   length      = idtable.add_string("length");
   Main        = idtable.add_string("Main");
   main_meth   = idtable.add_string("main");
-//   _no_class is a symbol that can't be the name of any 
+//   _no_class is a symbol that can't be the name of any
 //   user-defined class.
   No_class    = idtable.add_string("_no_class");
   No_type     = idtable.add_string("_no_type");
@@ -136,7 +136,7 @@ BoolConst truebool(TRUE);
 //*********************************************************
 CgenClassTable *codegen_classtable = NULL;
 
-void program_class::cgen(ostream &os) 
+void program_class::cgen(ostream &os)
 {
   // spim wants comments to start with '#'
   os << "# start of generated code\n";
@@ -169,7 +169,7 @@ void program_class::cgen(ostream &os)
 
 static void emit_load(char *dest_reg, int offset, char *source_reg, ostream& s)
 {
-  s << LW << dest_reg << " " << offset * WORD_SIZE << "(" << source_reg << ")" 
+  s << LW << dest_reg << " " << offset * WORD_SIZE << "(" << source_reg << ")"
     << endl;
 }
 
@@ -430,11 +430,11 @@ void StringEntry::code_def(ostream& s, int stringclasstag)
 
 //
 // StrTable::code_string
-// Generate a string object definition for every string constant in the 
+// Generate a string object definition for every string constant in the
 // stringtable.
 //
 void StrTable::code_string_table(ostream& s, int stringclasstag)
-{  
+{
   for (List<StringEntry> *l = tbl; l; l = l->tl())
     l->hd()->code_def(s,stringclasstag);
 }
@@ -460,7 +460,7 @@ void IntEntry::code_def(ostream &s, int intclasstag)
   code_ref(s);  s << LABEL                                // label
       << WORD << intclasstag << endl                      // class tag
       << WORD << (DEFAULT_OBJFIELDS + INT_SLOTS) << endl  // object size
-      << WORD; 
+      << WORD;
 
  /***** Add dispatch information for class Int ******/
 
@@ -490,7 +490,7 @@ void BoolConst::code_ref(ostream& s) const
 {
   s << BOOLCONST_PREFIX << val;
 }
-  
+
 //
 // Emit code for a constant Bool.
 // You should fill in the code naming the dispatch table.
@@ -537,7 +537,6 @@ void CgenClassTable::code_global_data()
   // The following global names must be defined first.
   //
   str << GLOBAL << CLASSNAMETAB << endl;
-  str << GLOBAL << CLASSOBJTAB << endl;
   str << GLOBAL; emit_protobj_ref(main,str);    str << endl;
   str << GLOBAL; emit_protobj_ref(integer,str); str << endl;
   str << GLOBAL; emit_protobj_ref(string,str);  str << endl;
@@ -553,10 +552,10 @@ void CgenClassTable::code_global_data()
   //
   str << INTTAG << LABEL
       << WORD << intclasstag << endl;
-  str << BOOLTAG << LABEL 
+  str << BOOLTAG << LABEL
       << WORD << boolclasstag << endl;
-  str << STRINGTAG << LABEL 
-      << WORD << stringclasstag << endl;    
+  str << STRINGTAG << LABEL
+      << WORD << stringclasstag << endl;
 }
 
 
@@ -570,7 +569,7 @@ void CgenClassTable::code_global_data()
 void CgenClassTable::code_global_text()
 {
   str << GLOBAL << HEAP_START << endl
-      << HEAP_START << LABEL 
+      << HEAP_START << LABEL
       << WORD << 0 << endl
       << "\t.text" << endl
       << GLOBAL;
@@ -679,7 +678,7 @@ void CgenClassTable::install_basic_classes()
 	new CgenNode(class_(prim_slot,No_class,nil_Features(),filename),
 			    Basic,this));
 
-// 
+//
 // The Object class has no parent class. Its methods are
 //        cool_abort() : Object    aborts the program
 //        type_name() : Str        returns a string representation of class name
@@ -690,7 +689,7 @@ void CgenClassTable::install_basic_classes()
 //
   install_class(
    new CgenNode(
-    class_(Object, 
+    class_(Object,
 	   No_class,
 	   append_Features(
            append_Features(
@@ -700,7 +699,7 @@ void CgenClassTable::install_basic_classes()
 	   filename),
     Basic,this));
 
-// 
+//
 // The IO class inherits from Object. Its methods are
 //        out_string(Str) : SELF_TYPE          writes a string to the output
 //        out_int(Int) : SELF_TYPE               "    an int    "  "     "
@@ -709,7 +708,7 @@ void CgenClassTable::install_basic_classes()
 //
    install_class(
     new CgenNode(
-     class_(IO, 
+     class_(IO,
             Object,
             append_Features(
             append_Features(
@@ -720,16 +719,16 @@ void CgenClassTable::install_basic_classes()
                         SELF_TYPE, no_expr()))),
             single_Features(method(in_string, nil_Formals(), Str, no_expr()))),
             single_Features(method(in_int, nil_Formals(), Int, no_expr()))),
-	   filename),	    
+	   filename),
     Basic,this));
 
 //
 // The Int class has no methods and only a single attribute, the
-// "val" for the integer. 
+// "val" for the integer.
 //
    install_class(
     new CgenNode(
-     class_(Int, 
+     class_(Int,
 	    Object,
             single_Features(attr(val, prim_slot, no_expr())),
 	    filename),
@@ -750,10 +749,10 @@ void CgenClassTable::install_basic_classes()
 //       length() : Int                       length of the string
 //       concat(arg: Str) : Str               string concatenation
 //       substr(arg: Int, arg2: Int): Str     substring
-//       
+//
    install_class(
     new CgenNode(
-      class_(Str, 
+      class_(Str,
 	     Object,
              append_Features(
              append_Features(
@@ -762,14 +761,14 @@ void CgenClassTable::install_basic_classes()
              single_Features(attr(val, Int, no_expr())),
             single_Features(attr(str_field, prim_slot, no_expr()))),
             single_Features(method(length, nil_Formals(), Int, no_expr()))),
-            single_Features(method(concat, 
+            single_Features(method(concat,
 				   single_Formals(formal(arg, Str)),
-				   Str, 
+				   Str,
 				   no_expr()))),
-	    single_Features(method(substr, 
-				   append_Formals(single_Formals(formal(arg, Int)), 
+	    single_Features(method(substr,
+				   append_Formals(single_Formals(formal(arg, Int)),
 						  single_Formals(formal(arg2, Int))),
-				   Str, 
+				   Str,
 				   no_expr()))),
 	     filename),
         Basic,this));
@@ -913,7 +912,7 @@ void CgenClassTable::code_dispatch_table() {
     str << nds[i]->get_name() << DISPTAB_SUFFIX << LABEL;
     for (int j = 0; j < nds[i]->methods_ordered.size(); j++) {
       str << WORD << nds[i]->get_name() << METHOD_SEP
-          << nds[i]->methods_ordered[j]->get_name();
+          << nds[i]->methods_ordered[j]->get_name() << endl;
     }
   }
 }
@@ -951,8 +950,9 @@ void CgenClassTable::code_class_prototypes() {
 void CgenClassTable::code_class_init() {
   for (int i = 0; i < current_tag; i++) {
     emit_init_ref(nds[i]->get_name(), str); str << LABEL;
-    
+
     // push registers to stack like funciton calls
+    str << "# enter class init: " << nds[i]->get_name() << endl;
     emit_push(FP, str);
     emit_push(RA, str);
     emit_push(SELF, str); // store the pointer to the current object on stack
@@ -962,7 +962,8 @@ void CgenClassTable::code_class_init() {
     addrTab.enterscope();
     // init parent class
     if (nds[i]->get_parent() != No_class) {
-      std::string ptr = 
+      str << "# init parent class" << endl;
+      std::string ptr =
         std::string(nds[i]->get_parent()->get_string()) + CLASSINIT_SUFFIX;
       emit_jal((char*) ptr.c_str(), str);
     }
@@ -973,7 +974,7 @@ void CgenClassTable::code_class_init() {
       start = nds[i]->get_parentnd()->attrs_ordered.size();
     }
 
-    for (int j = start; j < nds[i]->attrs_ordered.size(); j++) {
+    for (int j = 0; j < nds[i]->attrs_ordered.size(); j++) {
       attr_class* attr = nds[i]->attrs_ordered[j];
       char* addr = new char[50];
       sprintf(addr, "%d($s0)", j * 4 + 12);
@@ -982,8 +983,9 @@ void CgenClassTable::code_class_init() {
 
     for (int j = start; j < nds[i]->attrs_ordered.size(); j++) {
       attr_class* attr = nds[i]->attrs_ordered[j];
+      str << "# init attribute: " << attr->get_name() << endl;
       attr->init->code(str);
-      if (typeid(*attr) == typeid(no_expr_class)) continue;
+      if (typeid(*attr->init) == typeid(no_expr_class)) continue;
       emit_store(ACC, j + DEFAULT_OBJFIELDS, SELF, str);
       if (cgen_Memmgr == GC_GENGC) {
         emit_addiu(A1, SELF, 4 * (j + DEFAULT_OBJFIELDS), str);
@@ -992,6 +994,7 @@ void CgenClassTable::code_class_init() {
     }
     addrTab.exitscope();
 
+    str << "# exit class init: " << nds[i]->get_name() << endl;
     emit_move(ACC, SELF, str);
     emit_pop(SELF, str);
     emit_pop(RA, str);
@@ -1012,16 +1015,16 @@ void CgenClassTable::code()
   code_constants();
 
   if (cgen_debug) cout << "coding class name table" << endl;
-  void code_class_nameTab();
+  code_class_nameTab();
 
   if (cgen_debug) cout << "coding class object tables" << endl;
-  void code_class_objTab();
+  code_class_objTab();
 
   if (cgen_debug) cout << "coding dispatch tables" << endl;
-  void code_dispatch_table();
+  code_dispatch_table();
 
   if (cgen_debug) cout << "coding class prototypes" << endl;
-  void code_class_prototypes();
+  code_class_prototypes();
 
   if (cgen_debug) cout << "coding global text" << endl;
   code_global_text();
@@ -1047,7 +1050,7 @@ CgenNode::CgenNode(Class_ nd, Basicness bstatus, CgenClassTableP ct) :
    class__class((const class__class &) *nd),
    parentnd(NULL),
    basic_status(bstatus)
-{ 
+{
    stringtable.add_string(name->get_string());          // Add class name to string table
 }
 
@@ -1099,11 +1102,13 @@ void method_class::code(ostream &s) {
   emit_push(SELF, s);
   emit_addiu(FP, SP, 4, s);
 
+  s << "# coding method expr" << endl;
   fp_offset = 0; // reset stack distance to frame pointer
   expr->code(s);
 
-  emit_load(SELF, 4, SP, s);
-  emit_load(RA, 8, SP, s);
+  s << "# exit method: "; emit_method_ref(current_class->name, name, s); s << endl;
+  emit_load(SELF, 1, SP, s);
+  emit_load(RA, 2, SP, s);
   emit_addiu(SP, SP, 4 * (nf + 3), s);
   emit_load(FP, 0, SP, s);
   emit_return(s);
@@ -1146,10 +1151,12 @@ void dispatch_class::code(ostream &s) {
   int na = actual->len();
   for(int i = actual->first(); actual->more(i); i = actual->next(i)) {
     Expression e = (Expression) actual->nth(na - 1 - i);
+    s << "# code dispatch actual number " << na-1-i << endl;
     e->code(s);
     emit_push(ACC, s);
   }
 
+  s << "# code dispatch expr" <<endl;
   expr->code(s);
 
   //TODO: dispatch on void
@@ -1159,6 +1166,7 @@ void dispatch_class::code(ostream &s) {
     class_name = current_class->get_name();
   }
 
+  s << "# code dispatch method call" <<endl;
   int method_offset = codegen_classtable->method_index(class_name, name);
   emit_load(T1, 2, ACC, s);
   emit_load(T1, method_offset, T1, s);
@@ -1201,13 +1209,13 @@ void loop_class::code(ostream &s) {
 }
 
 void emit_match_children_class(
-  char* reg, 
+  char* reg,
   CgenNodeP n,
   int expr_label,
   ostream& s) {
   emit_load_imm(T3, n->tag, s);
   emit_beq(reg, T3, expr_label, s);
-  
+
   std::set<CgenNodeP>::iterator it;
   for (it = n->children.begin(); it != n->children.end(); it++) {
     emit_match_children_class(reg, *it, expr_label, s);
@@ -1229,7 +1237,7 @@ void typcase_class::code(ostream &s) {
     addrTab.enterscope();
     branch_class* b = (branch_class*) cases->nth(i);
     CgenNodeP nd = codegen_classtable->nd_map[b->type_decl];
-    
+
     int expr_label = label++;
     int next_label = label++;
     emit_match_children_class(T1, nd, expr_label, s);
@@ -1277,7 +1285,7 @@ void let_class::code(ostream &s) {
   addrTab.addid(identifier, addr);
 
   body->code(s);
-  
+
   emit_pop(T1, s); // don't touch ACC returned from body
   fp_offset += 4;
   addrTab.exitscope();
@@ -1325,7 +1333,7 @@ void divide_class::code(ostream &s) {
 
 void comp_common_begin(Expression e1, Expression e2, ostream &s) {
   double_reg(e1, e2, s);
-  
+
   emit_partial_load_address(ACC, s);
   truebool.code_ref(s); s << endl;
 }
@@ -1400,7 +1408,7 @@ void comp_class::code(ostream &s) {
   emit_label_def(tmp_label, s);
 }
 
-void int_const_class::code(ostream& s)  
+void int_const_class::code(ostream& s)
 {
   //
   // Need to be sure we have an IntEntry *, not an arbitrary Symbol
@@ -1429,7 +1437,7 @@ void new__class::code(ostream &s) {
     emit_push(T1, s);
     emit_jal("Object.copy", s);
     emit_pop(T1, s);
-    emit_load(T2, 4, T1, s);
+    emit_load(T2, 1, T1, s);
     emit_jalr(T2, s);
   } else {
     std::string prototype = class_name + PROTOBJ_SUFFIX;
