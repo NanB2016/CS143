@@ -826,6 +826,7 @@ void CgenClassTable::build_inheritance_tree()
     // copy parent's list
     nd->attrs_ordered = nd->get_parentnd()->attrs_ordered;
     nd->methods_ordered = nd->get_parentnd()->methods_ordered;
+    nd->methods_class_ordered = nd->get_parentnd()->methods_class_ordered;
 
     // insert its own features with method dedup
     Features features = nd->get_features();
@@ -833,11 +834,20 @@ void CgenClassTable::build_inheritance_tree()
       Feature f = features->nth(i);
       if (f->is_method) {
         std::vector<method_class*>::iterator fit;
-        fit = std::find(nd->methods_ordered.begin(),
-                        nd->methods_ordered.end(),
-                        (method_class*) f);
-        if (fit == nd->methods_ordered.end()) {
-          nd->methods_ordered.push_back((method_class*) f);
+        bool overrided = false;
+        method_class* m = (method_class*) f;
+        for (unsigned int j = 0; j < nd->methods_ordered.size(); j++) {
+          if (m->name->get_string() == 
+              nd->methods_ordered[j]->name->get_string()) {
+            overrided = true;
+            nd->methods_ordered[j] = m;
+            nd->methods_class_ordered[j] = nd;
+            break;
+          }
+        }
+        if (!overrided) {
+          nd->methods_ordered.push_back(m);
+          nd->methods_class_ordered.push_back(nd);
         }
       } else {
         nd->attrs_ordered.push_back((attr_class*) f);
@@ -854,7 +864,7 @@ void CgenClassTable::build_inheritance_tree()
 
 int CgenClassTable::method_index(Symbol c, Symbol m) {
   CgenNodeP n = nd_map[c];
-  for (int i = 0; i < n->methods_ordered.size(); i++) {
+  for (unsigned int i = 0; i < n->methods_ordered.size(); i++) {
     if (m == n->methods_ordered[i]->get_name()) {
       return i;
     }
@@ -910,9 +920,10 @@ void CgenClassTable::code_class_objTab() {
 void CgenClassTable::code_dispatch_table() {
   for (int i = 0; i < current_tag; i++) {
     str << nds[i]->get_name() << DISPTAB_SUFFIX << LABEL;
-    for (int j = 0; j < nds[i]->methods_ordered.size(); j++) {
-      str << WORD << nds[i]->get_name() << METHOD_SEP
-          << nds[i]->methods_ordered[j]->get_name() << endl;
+    for (unsigned int j = 0; j < nds[i]->methods_ordered.size(); j++) {
+      str << WORD << nds[i]->methods_class_ordered[j]->get_name()
+          << METHOD_SEP << nds[i]->methods_ordered[j]->get_name()
+          << endl;
     }
   }
 }
@@ -926,7 +937,7 @@ void CgenClassTable::code_class_prototypes() {
     str << WORD << DEFAULT_OBJFIELDS + nds[i]->attrs_ordered.size() << endl;
     str << WORD << nds[i]->get_name() << DISPTAB_SUFFIX << endl;
 
-    for (int j = 0; j < nds[i]->attrs_ordered.size(); j++) {
+    for (unsigned int j = 0; j < nds[i]->attrs_ordered.size(); j++) {
       attr_class* attr = nds[i]->attrs_ordered[j];
       str << WORD;
 
@@ -974,14 +985,14 @@ void CgenClassTable::code_class_init() {
       start = nds[i]->get_parentnd()->attrs_ordered.size();
     }
 
-    for (int j = 0; j < nds[i]->attrs_ordered.size(); j++) {
+    for (unsigned int j = 0; j < nds[i]->attrs_ordered.size(); j++) {
       attr_class* attr = nds[i]->attrs_ordered[j];
       char* addr = new char[50];
       sprintf(addr, "%d($s0)", j * 4 + 12);
       addrTab.addid(attr->get_name(), addr);
     }
 
-    for (int j = start; j < nds[i]->attrs_ordered.size(); j++) {
+    for (unsigned int j = start; j < nds[i]->attrs_ordered.size(); j++) {
       attr_class* attr = nds[i]->attrs_ordered[j];
       str << "# init attribute: " << attr->get_name() << endl;
       attr->init->code(str);
@@ -1069,7 +1080,7 @@ void class__class::code(ostream &s) {
   addrTab.enterscope();
   CgenNodeP n = codegen_classtable->nd_map[name];
 
-  for (int j = 0; j < n->attrs_ordered.size(); j++) {
+  for (unsigned int j = 0; j < n->attrs_ordered.size(); j++) {
     attr_class* attr = n->attrs_ordered[j];
     char* addr = new char[50];
     sprintf(addr, "%d($s0)", j * 4 + 12);
@@ -1091,15 +1102,16 @@ void method_class::code(ostream &s) {
   for(int i = formals->first(); formals->more(i); i = formals->next(i)) {
     formal_class* f = (formal_class *)formals->nth(i);
     char* addr = new char[50];
-    sprintf(addr, "%d($fp)", i * 4 + 8); // +8 due to additional SELF
+    sprintf(addr, "%d($fp)", i * 4 + 12);
     addrTab.addid(f->get_name(), addr);
   }
 
   emit_method_ref(current_class->name, name, s); s << LABEL;
 
-  // adding SELF in additional to existing registers in lecture 12
+  emit_push(FP, s);
   emit_push(RA, s);
   emit_push(SELF, s);
+  emit_move(SELF, ACC, s);
   emit_addiu(FP, SP, 4, s);
 
   s << "# coding method expr" << endl;
@@ -1109,8 +1121,8 @@ void method_class::code(ostream &s) {
   s << "# exit method: "; emit_method_ref(current_class->name, name, s); s << endl;
   emit_load(SELF, 1, SP, s);
   emit_load(RA, 2, SP, s);
+  emit_load(FP, 3, SP, s);
   emit_addiu(SP, SP, 4 * (nf + 3), s);
-  emit_load(FP, 0, SP, s);
   emit_return(s);
   addrTab.exitscope();
 }
@@ -1163,14 +1175,15 @@ void dispatch_class::code(ostream &s) {
   int na = actual->len();
   for(int i = actual->first(); actual->more(i); i = actual->next(i)) {
     Expression e = (Expression) actual->nth(na - 1 - i);
-    s << "# code dispatch actual number " << na-1-i << endl;
+    s << "# code dispatch actual number " << na-1-i  << " out of " 
+      << na << endl;
     e->code(s);
     emit_push(ACC, s);
   }
 
   s << "# code dispatch expr" <<endl;
   expr->code(s);
-  handle_dispatch_on_void(s, line_number);
+  //handle_dispatch_on_void(s, line_number);
 
   //dispatch on void
 
@@ -1179,7 +1192,8 @@ void dispatch_class::code(ostream &s) {
     class_name = current_class->get_name();
   }
 
-  s << "# code dispatch method call" <<endl;
+  s << "# code dispatch method call: " << class_name << "." 
+    << name <<endl;
   int method_offset = codegen_classtable->method_index(class_name, name);
   emit_load(T1, 2, ACC, s);
   emit_load(T1, method_offset, T1, s);
@@ -1218,7 +1232,7 @@ void loop_class::code(ostream &s) {
   emit_branch(cond_branch, s);
 
   emit_label_def(end_branch, s);
-  // what's the return value in ACC here?
+  emit_move(ACC, ZERO, s);
 }
 
 void emit_match_children_class(
@@ -1328,28 +1342,33 @@ void double_reg(Expression e1, Expression e2, ostream &s) {
   emit_load(T1, 3, ACC, s);
   emit_push(T1, s);
   e2->code(s);
+  emit_jal("Object.copy", s);
   emit_load(T2, 3, ACC, s);
   emit_pop(T1, s);
 }
 
 void plus_class::code(ostream &s) {
   double_reg(e1, e2, s);
-  emit_add(ACC, T1, T2, s);
+  emit_add(T3, T1, T2, s);
+  emit_store(T3, 3, ACC, s);
 }
 
 void sub_class::code(ostream &s) {
   double_reg(e1, e2, s);
-  emit_sub(ACC, T1, T2, s);
+  emit_sub(T3, T1, T2, s);
+  emit_store(T3, 3, ACC, s);
 }
 
 void mul_class::code(ostream &s) {
   double_reg(e1, e2, s);
-  emit_mul(ACC, T1, T2, s);
+  emit_mul(T3, T1, T2, s);
+  emit_store(T3, 3, ACC, s);
 }
 
 void divide_class::code(ostream &s) {
   double_reg(e1, e2, s);
-  emit_div(ACC, T1, T2, s);
+  emit_div(T3, T1, T2, s);
+  emit_store(T3, 3, ACC, s);
 }
 
 void comp_common_begin(Expression e1, Expression e2, ostream &s) {
@@ -1489,6 +1508,7 @@ void no_expr_class::code(ostream &s) {
 }
 
 void object_class::code(ostream &s) {
+  s << "# object class: " << name << endl;
   if (name == self) {
     emit_move(ACC, SELF, s);
   } else {
@@ -1497,4 +1517,7 @@ void object_class::code(ostream &s) {
   }
 }
 
-
+// tricky code
+// dispatch table
+// object copy during basic arithmetic operations
+// $s0 register

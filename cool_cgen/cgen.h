@@ -75,6 +75,7 @@ public:
    // inheritance graph
    std::vector<attr_class*> attrs_ordered;
    std::vector<method_class*> methods_ordered;
+   std::vector<CgenNode*> methods_class_ordered;
 
    CgenNode(Class_ c,
             Basicness bstatus,
