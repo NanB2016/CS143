@@ -989,7 +989,7 @@ void CgenClassTable::code_class_init() {
       emit_store(ACC, j + DEFAULT_OBJFIELDS, SELF, str);
       if (cgen_Memmgr == GC_GENGC) {
         emit_addiu(A1, SELF, 4 * (j + DEFAULT_OBJFIELDS), str);
-        emit_jal("_GenGC_Assign", str);
+        emit_gc_assign(str);
       }
     }
     addrTab.exitscope();
@@ -1119,6 +1119,19 @@ void assign_class::code(ostream &s) {
   expr->code(s);
   char* addr = addrTab.lookup(name);
   s << SW << ACC << " " << addr << endl;
+  if (cgen_Memmgr == GC_GENGC) {
+    emit_load_address(A1, addr, s);
+    emit_gc_assign(s);
+  }
+}
+
+void handle_dispatch_on_void(ostream& s, int line_number) {
+  int continue_label = label++;
+  emit_bne(ACC, ZERO, continue_label, s);
+  s << LA << ACC << " " << STRCONST_PREFIX << "0" << endl;
+  emit_load_imm(T1, line_number, s);
+  emit_jal("_dispatch_abort", s);
+  emit_label_def(continue_label, s);
 }
 
 void static_dispatch_class::code(ostream &s) {
@@ -1130,8 +1143,7 @@ void static_dispatch_class::code(ostream &s) {
   }
 
   expr->code(s);
-
-  //TODO: dispatch on void
+  handle_dispatch_on_void(s, line_number);
 
   Symbol class_name = type_name;
   std::string class_str(type_name->get_string());
@@ -1158,8 +1170,9 @@ void dispatch_class::code(ostream &s) {
 
   s << "# code dispatch expr" <<endl;
   expr->code(s);
+  handle_dispatch_on_void(s, line_number);
 
-  //TODO: dispatch on void
+  //dispatch on void
 
   Symbol class_name = expr->get_type();
   if (class_name == SELF_TYPE) {
@@ -1224,7 +1237,14 @@ void emit_match_children_class(
 
 void typcase_class::code(ostream &s) {
   expr->code(s);
+  // case on void
+  int continue_label = label++;
+  emit_bne(ACC, ZERO, continue_label, s);
+  s << LA << ACC << " " << STRCONST_PREFIX << "0" << endl;
+  emit_load_imm(T1, line_number, s);
+  emit_jal("_case_abort2", s);
 
+  emit_label_def(continue_label, s);
   emit_load(T1, 0, ACC, s); // class tag of expr, it will not be overwritten
   int end_label = label++;
 
@@ -1252,7 +1272,8 @@ void typcase_class::code(ostream &s) {
 
     addrTab.exitscope();
   }
-
+  // case no match
+  emit_jal("_case_abort", s);
   emit_label_def(end_label, s);
 
   fp_offset += 4;
