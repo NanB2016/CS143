@@ -1,5 +1,3 @@
-
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -224,6 +222,12 @@ void ClassTable::install_program_classes(Classes classes) {
         << "The class has already been defined: " << c->get_name()
         << endl;
     }    
+
+    // check if the class if SELF_TYPE
+    if (c->get_name() == SELF_TYPE) {
+      semant_error(c->get_filename(), c)
+        << "Cannot redefine class SELF_TYPE" << endl;
+    }
     
     // check existence of main class
     if (c->get_name() == Main) {
@@ -243,7 +247,7 @@ void ClassTable::install_program_classes(Classes classes) {
     class__class* c = (class__class*) classes->nth(i);
     Symbol parent = c->get_parent();
    
-    if (class_info.find(parent) == class_info.end()) {
+    if (class_info.find(parent) == class_info.end() && parent != SELF_TYPE) {
       semant_error(c->get_filename(), c)
         << "parent class does not exist!" << endl;
     }
@@ -651,6 +655,10 @@ void TypeChecker::check(method_class* m) {
   //cout << return_type_expr << endl;
   if (!class_table->check_child_class(return_type_method, return_type_expr)) {
     semant_error(m) << "method return types don't match." << endl;
+  }
+  if (m->get_return_type() == SELF_TYPE 
+      && m->get_expr()->get_type() != SELF_TYPE) {
+    semant_error(m) << "method return type SELF_TYPE doesn't match expression's type" << endl;
   }
   exitscope();
 }
