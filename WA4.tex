@@ -245,15 +245,15 @@ This assignment covers code generation, operational semantics and optimization. 
     \item \textbf{(4 pts)} Consider the state of the program at runtime when reaching (for the first time) the beginning of the line marked with the comment ``Point A''. Give the object layout (as per Lecture 12) of every object currently on the heap which is of a class defined by the program (i.e. ignoring Cool base classes such as IO or Int). For attributes, you can directly represent Int values by integers and an unassigned pointer by \textbf{void}. However, note that in a real Cool program, Int is an object and would have its own object layout, omitted here for simplicity. Finally, you can assume class tags are numbers from 1 to 5 given in the same order as the one in which classes appear in the layout above, and that attributes are laid out in the same order as the class definition.\\
     \textbf{Answer:} \\
 	
-    \begin{tabular}{ | l | l | l | }
+    \begin{tabular}{|c|c|c|c|c|c|c|}
     \hline
-    Offset Class & 0 & 4 & 8 & 12 & 16 & 20 & \\
+    Offset Class & 0 & 4 & 8 & 12 & 16 & 20 \\
     \hline
-    op & 1 & 3 & $\mathtt{maddr}_{16}$ &  &  &  &\\
+    op & 1 & 3 & $\mathtt{maddr}_{16}$ &  &  &  \\
     \hline
-    l & 2 & 6 & $\mathtt{maddr}_{17}$ & 0 & void & void &\\
-	\hline
-    l & 3 & 6 & $\mathtt{maddr}_{17}$ & 0 & void & void &\\
+    l & 2 & 6 & $\mathtt{maddr}_{17}$ & 0 & void & void \\
+    \hline
+    l & 3 & 6 & $\mathtt{maddr}_{17}$ & 0 & void & void \\
     \hline
     \end{tabular} \\
 	
@@ -314,7 +314,7 @@ This assignment covers code generation, operational semantics and optimization. 
     \hline
     $\mathtt{maddr}_{19}+32$ & Main.reduce & $\mathtt{maddr}_{19}+24$ & FP \\
     \hline
-    $\mathtt{maddr}_{19}+36$ & Main.reduce & self & $\mbox{arg}_0$ 
+    $\mathtt{maddr}_{19}+36$ & Main.reduce & self & $\mbox{arg}_0$ \\
     \hline
     $\mathtt{maddr}_{19}+40$ & Main.reduce & 1 & $\mbox{arg}_1$ \\	
 	\hline
@@ -325,6 +325,7 @@ This assignment covers code generation, operational semantics and optimization. 
     $\mathtt{maddr}_{19}+52$ & Main.reduce & $\mathtt{maddr}_{13}+\delta$ & Return \\
 	\hline
     $\mathtt{maddr}_{19}+56$ & Main.reduce & result & local \\
+    \hline
     \end{tabular} \\
     
    \newpage
@@ -339,13 +340,11 @@ This assignment covers code generation, operational semantics and optimization. 
     \textbf{Answer:} 
     8 pushes and 8 pops
     
-   \newpage
     \item \textbf{(2 pts)} Now suppose that you have access to two registers r1, r2 in addition to the stack pointer. Consider the code generated using the revised process described in lecture 12 starting on slide 30, with r1 as an accumulator and r2 storing temporaries. How many loads and stores are now required?\\
     \textbf{Answer:} 
     1 load and 1 store
-    
-   \newpage
   \end{enumerate}
+  \newpage
     
   % Problem 3 
   \item \textbf{(16 pts)} Suppose you want to add a for-loop construct to Cool, having the following syntax:\\
