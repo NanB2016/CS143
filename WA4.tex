@@ -356,10 +356,10 @@ This assignment covers code generation, operational semantics and optimization. 
    \begin{enumerate}
     \item \textbf{(10 pts)} Give the operational semantics for the for-loop construct above.\\
     \textbf{Answer:} 
+        let $t_1$ and $t_2$ to be the temporary variable storing the value of $e_1$ and $e_2$, we have the following operational semantics where $S_3$ is the initial state before entering the for-loop. \\
+    if $id$ is outside the range of $[e_1,e_3]$, the rule will be like
     
     \begin{prooftree}
-    let $t_1$ and $t_2$ to be the temporary variable storing the value of $e_1$ and $e_2$, we have the following operational semantics where $S_3$ is the initial state before entering the for-loop. \\
-    if $id$ is outside the range of $[e_1,e_3]$, the rule will be like
     \hypo[]{\mbox{so, E, S} \vdash e_1: v_1, S_1}
     \infer[no rule]1{\mbox{so, E, S_1} \vdash e_2: v_2, S_2}
     \infer[no rule]1{l_i = $newloc$(S_2)\  $for$\  i = 1, 2, 3}
