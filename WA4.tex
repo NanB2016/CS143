@@ -171,8 +171,8 @@ This assignment covers code generation, operational semantics and optimization. 
   
   \begin{enumerate}
     \item \textbf{(4 pts)} Assume the MIPS assembly code to be stored starting at address $\mathtt{maddr}_{12}$ and ending immediately before $\mathtt{maddr}_{13}$ (i.e. not including the instruction starting at $\mathtt{maddr}_{13}$) was generated using the code generation process from lecture. In particular, assume that the caller is responsible for saving and restoring the frame pointer. In addition, assume that the address to the self object is stored on the stack along with the other parameters. How many instructions using the frame pointer register ($\$fp$) will be present within such code? Why?\\
-    \textbf{Answer:} 
-    8 instructions with $\$fp$ will be present with such code. The Main.reduce method will be called 4 times and each time caller needs to save and restore frame pointers.
+    \textbf{Answer:} \\
+    10 instructions with $\$fp$ will be present with such code. The Main.reduce method called 5 methods (BinOp.operate(), IntList.get\_head(), IntList.tail\_is\_emtpy(), Main.reduce() and IntList.get\_tail()) within its body and each time caller needs to save and restore their frame pointers.
     
    \newpage
     \item \textbf{(4 pts)} The following is a representation of the dispatch table for class Main: \\
@@ -387,17 +387,139 @@ This assignment covers code generation, operational semantics and optimization. 
   
   \begin{enumerate}
     \item Algebraic simplification
+	
     \item Copy propagation
     \item Common sub-expression elimination
     \item Constant folding
     \item Copy propagation
     \item Dead code elimination
   \end{enumerate}
+
   
   When you have completed the last of the above transformations, the resulting program will still not be optimal. What optimization(s), in what order, can you apply to optimize the result further?\\
     \textbf{Answer:} 
-    %% Your answer here
-    
+ 
+    \begin{enumerate}
+    \item Algebraic simplification
+	  \begin{lstlisting}
+    a := f * f
+    b := f
+    c := 7 * 7
+    d := b + c
+    e := f * f
+    g := a + d
+    x := e + d
+    k := b * f
+    h := g * x
+    y := h + k
+  \end{lstlisting}
+  
+    \item Copy propagation
+	\begin{lstlisting}
+    a := f * f
+    b := f
+    c := 7 * 7
+    d := f + c
+    e := f * f
+    g := a + d
+    x := e + d
+    k := f * f
+    h := g * x
+    y := h + k
+  \end{lstlisting}
+  
+    \item Common sub-expression elimination
+	\begin{lstlisting}
+    a := f * f
+    b := f
+    c := 7 * 7
+    d := f + c
+    e := a
+    g := a + d
+    x := e + d
+    k := a
+    h := g * x
+    y := h + k
+  \end{lstlisting}
+  
+  
+    \item Constant folding
+	\begin{lstlisting}
+    a := f * f
+    b := f
+    c := 14
+    d := f + c
+    e := a
+    g := a + d
+    x := e + d
+    k := a
+    h := g * x
+    y := h + k
+  \end{lstlisting}
+	
+  
+    \item Copy propagation
+	
+	\begin{lstlisting}
+    a := f * f
+    b := f
+    c := 14
+    d := f + 14
+    e := a
+    g := a + d
+    x := a + d
+    k := a
+    h := g * x
+    y := h + a
+  \end{lstlisting}
+	
+	
+    \item Dead code elimination
+	
+	\begin{lstlisting}
+    a := f * f
+    d := f + 14
+    g := a + d
+    x := a + d
+    h := g * x
+    y := h + a
+  \end{lstlisting}
+		
+   
+  \end{enumerate}
+  
+  we could do another common sub-expression elimination to get:
+
+  	\begin{lstlisting}
+    a := f * f
+    d := f + 14
+    g := a + d
+    x := g
+    h := g * x
+    y := h + a
+  \end{lstlisting}
+  
+  copy propagation:
+   \begin{lstlisting}
+    a := f * f
+    d := f + 14
+    g := a + d
+    x := g
+    h := x * x
+    y := h + a
+  \end{lstlisting}
+  
+  dead code elimination:
+  
+    \begin{lstlisting}
+    a := f * f
+    d := f + 14
+    g := a + d
+    h := x * x
+    y := h + a
+  \end{lstlisting}
+  
+  
    \newpage
   
   
