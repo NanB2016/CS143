@@ -594,7 +594,9 @@ This assignment covers code generation, operational semantics and optimization. 
   \begin{enumerate}
     \item At each program point, list the temporaries that are live. Note that $t0$ is the only input temporary for this code and $t9$ will be the only live value on exit.\\
     \textbf{Answer:} 
-    %% Your answer here
+    \begin{figure}[h]
+    \includegraphics[width=10cm]{1.jpg}
+    \end{figure}
     
    \newpage
     \item Provide a lower bound on the number of registers required by the program.\\
@@ -604,13 +606,18 @@ This assignment covers code generation, operational semantics and optimization. 
    \newpage
     \item Draw the interference graph between temporaries in the above program as described in class.\\
     \textbf{Answer:} 
-    
+       \begin{figure}[h]
+    \includegraphics[width=15cm]{2.JPG}
+    \end{figure}
     
    \newpage
     \item Using the algorithm described in class, provide a coloring of the above graph. The number of colors used should be your lower bound in part (b). Provide the final k-colored graph (you may use the tikz package to typeset it or simply embed an image), along with the order in which the algorithm colors the nodes.\\
     \textbf{Answer:} 
     stack = {t9, t3, t2, t0, t6, t7, t1, t5, t8, t4} (t9 is the last node into stack, t4 is the first node into stack). 
 	The coloring order is from left to right, popping nodes out one by one. 
+       \begin{figure}[h]
+    \includegraphics[width=15cm]{3.JPG}
+    \end{figure}
     
    \newpage
     \item Based on your coloring, write down a mapping from temporaries to registers (labelled $r1$, $r2$, etc.).\\
