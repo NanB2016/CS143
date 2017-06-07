@@ -356,12 +356,57 @@ This assignment covers code generation, operational semantics and optimization. 
    \begin{enumerate}
     \item \textbf{(10 pts)} Give the operational semantics for the for-loop construct above.\\
     \textbf{Answer:} 
-    %% Your answer here
     
-   \newpage
+    \begin{prooftree}
+    let $t_1$ and $t_2$ to be the temporary variable storing the value of $e_1$ and $e_2$, we have the following operational semantics where $S_3$ is the initial state before entering the for-loop. \\
+    if $id$ is outside the range of $[e_1,e_3]$, the rule will be like
+    \hypo[]{\mbox{so, E, S} \vdash e_1: v_1, S_1}
+    \infer[no rule]1{\mbox{so, E, S_1} \vdash e_2: v_2, S_2}
+    \infer[no rule]1{l_i = $newloc$(S_2)\  $for$\  i = 1, 2, 3}
+    \infer[no rule]1{E' = E[t_1/l_1,t_2/l_2, id/l_3]}
+    \infer[no rule]1{S_4 = S_2[v_1/l_1,v2/l_2, v_1/id]}
+    \infer[no rule]1{\mbox{so, E', S_4} \vdash id >= t1\ and\ id <= t2: Bool(false), S_4}
+    \infer2[]{\mbox{so, E, S} \vdash $for$\ id\leftarrow e_1\ \mbox{to}\ e_2\ \mbox{do}\ e_3\ \mbox{rof}: void, S_4}
+    \end{prooftree}
+    
+    \newline
+    if  $id$ is within the range, the rule will be like
+    
+    \begin{prooftree}
+    \hypo[]{\mbox{so, E, S} \vdash e_1: v_1, S_1}
+    \infer[no rule]1{\mbox{so, E, S_1} \vdash e_2: v_2, S_2}
+     \infer[no rule]1{\mbox{so, E, S_2} \vdash e_3: v, S_3}
+    \infer[no rule]1{l_i = $newloc$(S_3)\  $for$\  i = 1, 2, 3}
+    \infer[no rule]1{E' = E[t_1/l_1,t_2/l_2, id/l_3]}
+    \infer[no rule]1{S_4 = S_3[v_1/l_1,v2/l_2, v_1/id]}
+    \infer[no rule]1{\mbox{so, E', S_4} \vdash id >= t1\ and\ id <= t2: Bool(true), S_4}
+    \infer[no rule]1{\mbox{so, E', S_4} \vdash $for$\ id\leftarrow e_1\ \mbox{to}\ e_2\ \mbox{do}\ e_3\ \mbox{rof}: void, S_4}
+    \infer2[]{\mbox{so, E, S} \vdash $for$\ id\leftarrow e_1\ \mbox{to}\ e_2\ \mbox{do}\ e_3\ \mbox{rof}: void, S_4}
+    \end{prooftree}
+    \newpage
+    
     \item \textbf{(6 pts)} Give the code generation function $\mbox{cgen}(\mbox{for}\ \mbox{id}: \mbox{Int}\ \leftarrow e_1\ \mbox{to}\ e_2\ \mbox{do}\ e_3\ \mbox{rof})$ for this construct. Use the code generation conventions from the lecture. The result of $\mbox{cgen}(...)$ must be MIPS code following the stack-machine with one accumulator model.\\
-    \textbf{Answer:} 
-    %% Your answer here
+    \textbf{Answer:} \\
+    cgen(for id $\leftarrow$ $e_1$ to $e_2$ do $e_3$ rof): \newline \\
+    cgen($e_1$) \\
+    sw \$a0 0(\$sp) \# use this address to store $id$ \\
+    sw \$a0 -4(\$sp) \# this address to store $e_1$ \\
+    addiu \$sp \$sp -8 \\
+    cgen($e_2$) \\
+    sw \$a0 0(\$sp) \\
+    addiu \$sp \$sp -4 \\
+    \# enter the loop \\
+    begin\_loop: \\
+    lw \$t1 12(\$sp) \# $id$ \\
+    lw \$t2 4(\$sp) \# $e_2$ \\
+    lw \$t3 8(\$sp) \# $e_1$ \\
+    blt \$t1 \$t3 end\_loop \\
+    bgt \$t1 \$t2 end\_loop \\
+    addi \$t1 \$t1 1 \\
+    cgen($e_3$) \\
+    b begin\_loop \\
+    end\_loop: \\
+    li \$a0 0
     
    \newpage
   \end{enumerate}
