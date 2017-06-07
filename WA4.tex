@@ -599,22 +599,26 @@ This assignment covers code generation, operational semantics and optimization. 
    \newpage
     \item Provide a lower bound on the number of registers required by the program.\\
     \textbf{Answer:} 
-    %% Your answer here
+    The lower bound number of registers is 4. 
     
    \newpage
     \item Draw the interference graph between temporaries in the above program as described in class.\\
     \textbf{Answer:} 
-    %% Your answer here
+    
     
    \newpage
     \item Using the algorithm described in class, provide a coloring of the above graph. The number of colors used should be your lower bound in part (b). Provide the final k-colored graph (you may use the tikz package to typeset it or simply embed an image), along with the order in which the algorithm colors the nodes.\\
     \textbf{Answer:} 
-    %% Your answer here
+    stack = {t9, t3, t2, t0, t6, t7, t1, t5, t8, t4} (t9 is the last node into stack, t4 is the first node into stack). 
+	The coloring order is from left to right, popping nodes out one by one. 
     
    \newpage
     \item Based on your coloring, write down a mapping from temporaries to registers (labelled $r1$, $r2$, etc.).\\
-    \textbf{Answer:} 
-    %% Your answer here
+    \textbf{Answer:} \\
+    {$r1$: $t0$ $t2$ $t3$ $t6$ $t9$}\\
+	{$r2$: $t4$ $t7$}\\
+	{$r3$: $t1$ $t8$}\\
+	{$r1$: $t5$}\\
     
    \newpage
   \end{enumerate}
