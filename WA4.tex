@@ -306,11 +306,11 @@ This assignment covers code generation, operational semantics and optimization. 
     \hline
     $\mathtt{maddr}_{19}+16$ & Main.main & io & local \\
     \hline
-    $\mathtt{maddr}_{19}+20$ & IO.out_int & $\mathtt{maddr}_{19}$ & FP \\
+    $\mathtt{maddr}_{19}+20$ & IO.out\_int & $\mathtt{maddr}_{19}$ & FP \\
     \hline
-    $\mathtt{maddr}_{19}+24$ & IO.out_int & self & $\mbox{arg}_0$ \\
+    $\mathtt{maddr}_{19}+24$ & IO.out\_int & self & $\mbox{arg}_0$ \\
 	\hline
-    $\mathtt{maddr}_{19}+28$ & IO.out_int & $\mathtt{maddr}_{13}+\delta$ & Return \\
+    $\mathtt{maddr}_{19}+28$ & IO.out\_int & $\mathtt{maddr}_{13}+\delta$ & Return \\
     \hline
     $\mathtt{maddr}_{19}+32$ & Main.reduce & $\mathtt{maddr}_{19}+24$ & FP \\
     \hline
@@ -322,7 +322,7 @@ This assignment covers code generation, operational semantics and optimization. 
 	\hline
     $\mathtt{maddr}_{19}+48$ & Main.reduce & l & $\mbox{arg}_3$ \\
 	\hline
-    $\mathtt{maddr}_{19}+52$ & Main.reduce & $\mathtt{maddr}_{13}+\delta$ & Return \\
+    $\mathtt{maddr}_{19}+52$ & Main.reduce & $\mathtt{maddr}_{out\_int}+\delta$ & Return \\
 	\hline
     $\mathtt{maddr}_{19}+56$ & Main.reduce & result & local \\
     \hline
@@ -625,7 +625,7 @@ This assignment covers code generation, operational semantics and optimization. 
     {$r1$: $t0$ $t2$ $t3$ $t6$ $t9$}\\
 	{$r2$: $t4$ $t7$}\\
 	{$r3$: $t1$ $t8$}\\
-	{$r1$: $t5$}\\
+	{$r4$: $t5$}\\
     
    \newpage
   \end{enumerate}
